@@ -8,8 +8,6 @@
   # The name as it shows up in the server list. Minecraft colour codes may be used in this name to format the
   # name of the server.
   Name = "Gears dfmc Beta"
-  # AuthEnabled controls whether players must be connected to Xbox Live in order to join the server.
-  AuthEnabled = false
   # DisableJoinQuitMessages specifies if join/quit messages should be broadcast when players join the server.
   DisableJoinQuitMessages = false
   # MuteEmoteChat specifies if the player emote chat should be muted or not.

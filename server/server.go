@@ -348,7 +348,14 @@ func (srv *Server) listen(l Listener) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if msg, ok := srv.conf.Allower.Allow(c.RemoteAddr(), c.IdentityData(), c.ClientData()); !ok {
+			identity := c.IdentityData()
+			if err := validateAuthenticatedIdentity(identity); err != nil {
+				srv.conf.Log.Warn("Rejected unauthenticated connection.", "raddr", c.RemoteAddr(), "reason", err)
+				_ = c.WritePacket(&packet.Disconnect{Message: "Xbox Live authentication is required."})
+				_ = c.Close()
+				return
+			}
+			if msg, ok := srv.conf.Allower.Allow(c.RemoteAddr(), identity, c.ClientData()); !ok {
 				_ = c.WritePacket(&packet.Disconnect{HideDisconnectionScreen: msg == "", Message: msg})
 				_ = c.Close()
 				return

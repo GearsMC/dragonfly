@@ -55,11 +55,6 @@ type Config struct {
 	// players cannot. By returning false in the Allow method, for example if
 	// the player has been banned, will prevent the player from joining.
 	Allower Allower
-	// AuthDisabled specifies if XBOX Live authentication should be disabled.
-	// Note that this should generally only be done for testing purposes or for
-	// local games. Allowing players to join without authentication is generally
-	// a security hazard.
-	AuthDisabled bool
 	// MuteEmoteChat specifies if the player emote chat should be muted or not.
 	MuteEmoteChat bool
 	// MaxPlayers is the maximum amount of players allowed to join the server at
@@ -219,9 +214,6 @@ type UserConfig struct {
 	Server struct {
 		// Name is the name of the server as it shows up in the server list.
 		Name string
-		// AuthEnabled controls whether players must be connected to Xbox Live
-		// in order to join the server.
-		AuthEnabled bool
 		// DisableJoinQuitMessages specifies if default join and quit messages
 		// for players should be disabled.
 		DisableJoinQuitMessages bool
@@ -279,7 +271,6 @@ func (uc UserConfig) Config(log *slog.Logger) (Config, error) {
 		Log:                     log,
 		Name:                    uc.Server.Name,
 		ResourcesRequired:       uc.Resources.Required,
-		AuthDisabled:            !uc.Server.AuthEnabled,
 		MuteEmoteChat:           uc.Server.MuteEmoteChat,
 		MaxPlayers:              uc.Players.MaxCount,
 		MaxChunkRadius:          uc.Players.MaximumChunkRadius,
@@ -346,7 +337,6 @@ func DefaultConfig() UserConfig {
 	c := UserConfig{}
 	c.Network.Address = ":19132"
 	c.Server.Name = "Dragonfly Server"
-	c.Server.AuthEnabled = true
 	c.World.SaveData = true
 	c.World.Folder = "world"
 	c.Players.MaximumChunkRadius = 32
