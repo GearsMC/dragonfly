@@ -63,6 +63,7 @@ func (p *Provider) toJson(d player.Config, w *world.World) jsonData {
 	offHand, _ := d.OffHand.Item(0)
 	return jsonData{
 		UUID:            d.UUID.String(),
+		XUID:            d.XUID,
 		Username:        d.Name,
 		Position:        d.Position,
 		Velocity:        d.Velocity,

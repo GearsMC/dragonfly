@@ -115,8 +115,8 @@ type Controllable interface {
 	// UUID returns the UUID of the controllable. It must be unique for all controllable entities present in
 	// the server.
 	UUID() uuid.UUID
-	// XUID returns the XBOX Live User ID of the controllable. Network-controlled players accepted by Server
-	// always have a non-empty XUID.
+	// XUID, controllable nesnesinin Xbox Live kullanıcı kimliğini döndürür. Server tarafından kabul edilen
+	// ağ kontrollü oyuncuların XUID değeri her zaman doludur.
 	XUID() string
 	// Skin returns the skin of the controllable. Each controllable must have a skin, as it defines how the
 	// entity looks in the world.

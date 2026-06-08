@@ -350,8 +350,8 @@ func (srv *Server) listen(l Listener) {
 			defer wg.Done()
 			identity := c.IdentityData()
 			if err := validateAuthenticatedIdentity(identity); err != nil {
-				srv.conf.Log.Warn("Rejected unauthenticated connection.", "raddr", c.RemoteAddr(), "reason", err)
-				_ = c.WritePacket(&packet.Disconnect{Message: "Xbox Live authentication is required."})
+				srv.conf.Log.Warn("Doğrulanmamış bağlantı reddedildi.", "raddr", c.RemoteAddr(), "neden", err)
+				_ = c.WritePacket(&packet.Disconnect{Message: "Xbox Live doğrulaması gereklidir."})
 				_ = c.Close()
 				return
 			}

@@ -6,15 +6,15 @@ import (
 	"github.com/sandertv/gophertunnel/minecraft/protocol/login"
 )
 
-// validateAuthenticatedIdentity verifies that identity data belongs to an
-// Xbox Live authenticated player. Every connection accepted by Server must
-// satisfy this invariant, including connections supplied by custom listeners.
+// validateAuthenticatedIdentity kimlik verisinin Xbox Live tarafından
+// doğrulanmış bir oyuncuya ait olduğunu denetler. Özel listener'lardan gelenler
+// dahil olmak üzere Server tarafından kabul edilen her bağlantı bu koşulu sağlamalıdır.
 func validateAuthenticatedIdentity(identity login.IdentityData) error {
 	if identity.XUID == "" {
-		return fmt.Errorf("Xbox Live authenticated identity must have an XUID")
+		return fmt.Errorf("doğrulanmış Xbox Live kimliğinin XUID değeri olmalıdır")
 	}
 	if err := identity.Validate(); err != nil {
-		return fmt.Errorf("invalid Xbox Live identity: %w", err)
+		return fmt.Errorf("geçersiz Xbox Live kimliği: %w", err)
 	}
 	return nil
 }

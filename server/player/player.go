@@ -141,12 +141,12 @@ func (p *Player) UUID() uuid.UUID {
 	return p.handle.UUID()
 }
 
-// XUID returns the XBOX Live user ID of the player. It will remain consistent with the XBOX Live account
-// and will not change in the lifetime of an account. Players accepted by a Server always have a non-empty
-// XUID. A Player constructed without an authenticated network connection may have an empty XUID.
+// XUID, oyuncunun Xbox Live kullanıcı kimliğini döndürür. Bu değer Xbox Live hesabıyla tutarlı kalır ve
+// hesabın kullanım ömrü boyunca değişmez. Server tarafından kabul edilen oyuncuların XUID değeri her zaman
+// doludur. Doğrulanmış bir ağ bağlantısı olmadan oluşturulan Player için XUID boş olabilir.
 //
-// The XUID is a number that can be parsed as an int64. No more information on what it represents is
-// available, and the UUID should be preferred.
+// XUID, int64 olarak ayrıştırılabilen bir sayıdır. Neyi temsil ettiği hakkında daha fazla bilgi
+// bulunmadığından UUID tercih edilmelidir.
 func (p *Player) XUID() string {
 	return p.xuid
 }
