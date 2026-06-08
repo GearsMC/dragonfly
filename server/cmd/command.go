@@ -51,6 +51,7 @@ type Command struct {
 	description string
 	usage       string
 	aliases     []string
+	permissions []string
 }
 
 // New returns a new Command using the name and description passed. Command
@@ -116,6 +117,36 @@ func (cmd Command) Aliases() []string {
 	return cmd.aliases
 }
 
+// WithPermissions returns a copy of the Command requiring the permissions
+// passed. All permissions must be granted by the Source executing the command.
+func (cmd Command) WithPermissions(permissions ...string) Command {
+	cmd.permissions = slices.Clone(permissions)
+	return cmd
+}
+
+// Permissions returns the permissions required to execute this Command.
+func (cmd Command) Permissions() []string {
+	return slices.Clone(cmd.permissions)
+}
+
+// CanRun checks if the Source passed is allowed to run this Command before
+// runnable-specific checks are applied.
+func (cmd Command) CanRun(src Source) bool {
+	if len(cmd.permissions) == 0 {
+		return true
+	}
+	permissionSource, ok := src.(PermissionSource)
+	if !ok {
+		return false
+	}
+	for _, permission := range cmd.permissions {
+		if !permissionSource.HasCommandPermission(permission) {
+			return false
+		}
+	}
+	return true
+}
+
 // Execute executes the Command as a source with the args passed. The args are parsed assuming they do not
 // start with the command name. Execute will attempt to parse and execute one Runnable at a time. If one of
 // the Runnable was able to parse args correctly, it will be executed and no more Runnables will be attempted
@@ -129,6 +160,10 @@ func (cmd Command) Execute(args string, source Source, tx *world.Tx) {
 	}
 	output := &Output{}
 	defer source.SendCommandOutput(output)
+	if !cmd.CanRun(source) {
+		output.Errort(MessageUnknown, cmd.name)
+		return
+	}
 
 	var leastErroneous error
 	var leastArgsLeft *Line
@@ -177,6 +212,9 @@ type ParamInfo struct {
 // Params returns a list of all parameters of the runnables. No assumptions should be done on the values that
 // they hold: Only the types are guaranteed to be consistent.
 func (cmd Command) Params(src Source) [][]ParamInfo {
+	if !cmd.CanRun(src) {
+		return nil
+	}
 	params := make([][]ParamInfo, 0, len(cmd.v))
 	for _, runnable := range cmd.v {
 		if allower, ok := runnable.Interface().(Allower); ok && !allower.Allow(src) {
@@ -210,6 +248,9 @@ func (cmd Command) Params(src Source) [][]ParamInfo {
 
 // Runnables returns a map of all Runnable implementations of the Command that a Source can execute.
 func (cmd Command) Runnables(src Source) map[int]Runnable {
+	if !cmd.CanRun(src) {
+		return nil
+	}
 	m := make(map[int]Runnable, len(cmd.v))
 	for i, runnable := range cmd.v {
 		v := runnable.Interface().(Runnable)

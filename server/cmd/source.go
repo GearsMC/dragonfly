@@ -10,3 +10,18 @@ type Source interface {
 	// SendCommandOutput is called by a Command automatically after being run.
 	SendCommandOutput(o *Output)
 }
+
+// ConsoleSource may be implemented by a Source that represents the server
+// console. Console sources may execute commands without a leading slash.
+type ConsoleSource interface {
+	Source
+	Console() bool
+}
+
+// PermissionSource may be implemented by a Source that can evaluate command
+// permissions. Sources that do not implement this interface can only execute
+// commands without explicit permissions.
+type PermissionSource interface {
+	Source
+	HasCommandPermission(permission string) bool
+}

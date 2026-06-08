@@ -7,24 +7,30 @@ import (
 
 	"github.com/df-mc/dragonfly/server"
 	"github.com/df-mc/dragonfly/server/cmd/builtin"
+	"github.com/df-mc/dragonfly/server/console"
 	"github.com/df-mc/dragonfly/server/player/chat"
 	"github.com/pelletier/go-toml"
 )
 
 func main() {
+	writer := console.NewWriter(os.Stdout, console.SupportsColour(os.Stdout))
+	logger := slog.New(console.NewLogHandler(writer, slog.LevelDebug))
+	slog.SetDefault(logger)
 	slog.SetLogLoggerLevel(slog.LevelDebug)
-	chat.Global.Subscribe(chat.StdoutSubscriber{})
+	chat.Global.Subscribe(console.NewChatSubscriber(writer))
 	builtin.RegisterPerformance()
 
-	conf, err := readConfig(slog.Default())
+	conf, err := readConfig(logger)
 	if err != nil {
 		panic(err)
 	}
 
 	srv := conf.New()
+	builtin.RegisterServer(srv)
 	srv.CloseOnProgramEnd()
 
 	srv.Listen()
+	console.Start(os.Stdin, writer, console.NewSource(writer, srv.World().Spawn().Vec3()), srv.World())
 	for p := range srv.Accept() {
 		_ = p
 	}
