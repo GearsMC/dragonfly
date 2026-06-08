@@ -17,8 +17,8 @@ type stopCommand struct {
 }
 
 func (c stopCommand) Allow(src cmd.Source) bool {
-	_, ok := src.(cmd.ConsoleSource)
-	return ok
+	console, ok := src.(cmd.ConsoleSource)
+	return ok && console.Console()
 }
 
 func (c stopCommand) Run(_ cmd.Source, o *cmd.Output, _ *world.Tx) {

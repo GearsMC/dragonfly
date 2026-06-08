@@ -23,6 +23,13 @@ func TestParseCommandLineAllowsConsoleWithoutSlash(t *testing.T) {
 	}
 }
 
+func TestParseCommandLineRejectsDisabledConsoleWithoutSlash(t *testing.T) {
+	name, args, ok := ParseCommandLine("status now", disabledConsoleSource{})
+	if ok {
+		t.Fatalf("expected disabled console command without slash to be ignored, got name=%q args=%q", name, args)
+	}
+}
+
 func TestArgumentPreviewKeepsQuotedArguments(t *testing.T) {
 	args := ArgumentPreview(`hello "two words" tail`)
 	if len(args) != 3 || args[0] != "hello" || args[1] != "two words" || args[2] != "tail" {
@@ -44,4 +51,12 @@ type consoleSource struct {
 
 func (consoleSource) Console() bool {
 	return true
+}
+
+type disabledConsoleSource struct {
+	regularSource
+}
+
+func (disabledConsoleSource) Console() bool {
+	return false
 }

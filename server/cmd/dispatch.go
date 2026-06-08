@@ -50,8 +50,11 @@ func ParseCommandLine(commandLine string, source Source) (name string, args stri
 
 	if stripped, slash := strings.CutPrefix(commandLine, "/"); slash {
 		commandLine = stripped
-	} else if _, console := source.(ConsoleSource); !console {
-		return "", "", false
+	} else {
+		console, ok := source.(ConsoleSource)
+		if !ok || !console.Console() {
+			return "", "", false
+		}
 	}
 
 	commandLine = strings.TrimSpace(commandLine)
