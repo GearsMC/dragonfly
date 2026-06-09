@@ -1,9 +1,12 @@
 package permission
 
+import "sync/atomic"
+
 // Manager, permission registry'si ile XUID tabanlı operatör store'unu tek API altında birleştirir.
 type Manager struct {
 	registry *Registry
 	store    Store
+	version  atomic.Uint64
 }
 
 // NewManager, verilen operatör store'u ile varsayılan permission ağacını taşıyan bir manager oluşturur.
@@ -27,12 +30,18 @@ func (m *Manager) Registry() *Registry {
 // Register, yeni bir permission düğümünü registry'ye ekler.
 func (m *Manager) Register(permission Permission) {
 	m.registry.Register(permission)
+	m.version.Add(1)
 }
 
 // CalculatePermission, subject için permission sonucunu hesaplar.
 func (m *Manager) CalculatePermission(subject Subject, name string) State {
-	if name == "" || subject == nil {
-		return Undefined
+	return m.Snapshot(subject).Permission(name)
+}
+
+// Snapshot, subject için hesaplanmış permission görünümünü üretir.
+func (m *Manager) Snapshot(subject Subject) Snapshot {
+	if subject == nil {
+		return EmptySnapshot()
 	}
 	xuid := subject.PermissionXUID()
 	operator := m.IsOperator(xuid)
@@ -48,24 +57,17 @@ func (m *Manager) CalculatePermission(subject Subject, name string) State {
 	}
 	roots = append(roots, rootPermission{name: GroupUser, state: Allow})
 
-	result := Undefined
+	permissions := map[string]State{}
 	m.registry.mu.RLock()
 	for _, root := range roots {
-		state := m.resolveLocked(root.name, name, root.state, map[string]struct{}{})
-		if state == Deny {
-			m.registry.mu.RUnlock()
-			return Deny
-		}
-		if state == Allow {
-			result = Allow
-		}
+		m.applyLocked(permissions, root.name, root.state, map[string]struct{}{})
 	}
-	_, registered := m.registry.permissionUnsafe(name)
 	m.registry.mu.RUnlock()
-	if result == Undefined && !registered && operator {
-		return Allow
+	return Snapshot{
+		version:    m.PermissionVersion(),
+		operator:   operator,
+		permission: permissions,
 	}
-	return result
 }
 
 // IsOperator, XUID'nin operatör olup olmadığını döndürür.
@@ -85,7 +87,11 @@ func (m *Manager) Operators() []Operator {
 
 // SetOperator, XUID için operatör yetkisini kalıcı olarak ekler veya kaldırır.
 func (m *Manager) SetOperator(xuid, lastKnownName string, value bool) error {
-	return m.store.SetOperator(xuid, lastKnownName, value)
+	if err := m.store.SetOperator(xuid, lastKnownName, value); err != nil {
+		return err
+	}
+	m.version.Add(1)
+	return nil
 }
 
 // Permission, XUID için açık permission kararını döndürür.
@@ -100,7 +106,11 @@ func (m *Manager) Permissions(xuid string) map[string]State {
 
 // SetPermission, XUID için açık permission kararı yazar. Undefined verilirse kayıt silinir.
 func (m *Manager) SetPermission(xuid, name string, state State) error {
-	return m.store.SetPermission(xuid, name, state)
+	if err := m.store.SetPermission(xuid, name, state); err != nil {
+		return err
+	}
+	m.version.Add(1)
+	return nil
 }
 
 // RememberOperatorIdentity, operatör olan oyuncunun son bilinen adını günceller.
@@ -113,35 +123,44 @@ func (m *Manager) Close() error {
 	return m.store.Close()
 }
 
+// PermissionVersion, permission kararını etkileyen her değişiklikte artan sürümü döndürür.
+func (m *Manager) PermissionVersion() uint64 {
+	return m.version.Load()
+}
+
 type rootPermission struct {
 	name  string
 	state State
 }
 
-func (m *Manager) resolveLocked(current, target string, state State, seen map[string]struct{}) State {
-	if current == target {
-		return state
+func (m *Manager) applyLocked(permissions map[string]State, current string, state State, seen map[string]struct{}) {
+	if current == "" || state == Undefined {
+		return
 	}
 	if _, ok := seen[current]; ok {
-		return Undefined
+		return
 	}
 	seen[current] = struct{}{}
+	defer delete(seen, current)
 
+	applyState(permissions, current, state)
 	permission, ok := m.registry.permissionUnsafe(current)
 	if !ok {
-		return Undefined
+		return
 	}
-
-	result := Undefined
 	for child, childValue := range permission.Children {
 		nextState := stateFromBool(state.Bool() == childValue)
-		resolved := m.resolveLocked(child, target, nextState, seen)
-		if resolved == Deny {
-			return Deny
-		}
-		if resolved == Allow {
-			result = Allow
-		}
+		m.applyLocked(permissions, child, nextState, seen)
 	}
-	return result
+}
+
+func applyState(permissions map[string]State, name string, state State) {
+	if state == Deny {
+		permissions[name] = Deny
+		return
+	}
+	if _, denied := permissions[name]; denied && permissions[name] == Deny {
+		return
+	}
+	permissions[name] = Allow
 }

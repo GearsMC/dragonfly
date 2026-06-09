@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/df-mc/dragonfly/server/player/debug"
@@ -42,7 +43,9 @@ import (
 
 type playerData struct {
 	xuid                 string
+	permissionMu         sync.RWMutex
 	permissionCalculator permission.Calculator
+	permissionSnapshot   atomic.Pointer[permission.Snapshot]
 	locale               language.Tag
 	nameTag, scoreTag    string
 	absorptionHealth     float64
@@ -161,15 +164,68 @@ func (p *Player) PermissionName() string {
 
 // PermissionState, verilen permission için oyuncunun üç durumlu yetki sonucunu döndürür.
 func (p *Player) PermissionState(name string) permission.State {
-	if p.permissionCalculator == nil {
+	calculator := p.PermissionCalculator()
+	if calculator == nil {
 		return permission.Undefined
 	}
-	return p.permissionCalculator.CalculatePermission(p, name)
+	snapshotter, ok := calculator.(permission.SnapshotCalculator)
+	if !ok {
+		return calculator.CalculatePermission(p, name)
+	}
+
+	snapshot := p.permissionSnapshot.Load()
+	if snapshot != nil {
+		if versioned, ok := calculator.(permission.VersionedCalculator); !ok || snapshot.Version() == versioned.PermissionVersion() {
+			return snapshot.Permission(name)
+		}
+	}
+	p.RecalculatePermissions()
+	if snapshot = p.permissionSnapshot.Load(); snapshot != nil {
+		return snapshot.Permission(name)
+	}
+	return snapshotter.Snapshot(p).Permission(name)
 }
 
 // HasCommandPermission, command sistemi tarafından kullanılan permission kontrolüdür.
 func (p *Player) HasCommandPermission(name string) bool {
 	return p.PermissionState(name).Bool()
+}
+
+// PermissionCalculator, oyuncunun aktif permission calculator'ını döndürür.
+func (p *Player) PermissionCalculator() permission.Calculator {
+	p.permissionMu.RLock()
+	calculator := p.permissionCalculator
+	p.permissionMu.RUnlock()
+	return calculator
+}
+
+// SetPermissionCalculator, oyuncunun permission calculator'ını değiştirir ve client görünümünü yeniler.
+func (p *Player) SetPermissionCalculator(calculator permission.Calculator) {
+	if calculator == nil {
+		calculator = permission.NopCalculator{}
+	}
+	p.permissionMu.Lock()
+	p.permissionCalculator = calculator
+	p.permissionMu.Unlock()
+	p.RefreshPermissions()
+}
+
+// RecalculatePermissions, oyuncunun immutable permission snapshot'ını yeniden üretir.
+func (p *Player) RecalculatePermissions() {
+	calculator := p.PermissionCalculator()
+	snapshotter, ok := calculator.(permission.SnapshotCalculator)
+	if !ok {
+		p.permissionSnapshot.Store(nil)
+		return
+	}
+	snapshot := snapshotter.Snapshot(p)
+	p.permissionSnapshot.Store(&snapshot)
+}
+
+// RefreshPermissions, permission snapshot'ını yeniler ve client'a ability/command bilgisinin tekrar gönderilmesini ister.
+func (p *Player) RefreshPermissions() {
+	p.RecalculatePermissions()
+	p.session().RefreshPermissions()
 }
 
 // DeviceID returns the device ID of the player. If the Player is not connected to a network session, an empty string is

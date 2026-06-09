@@ -38,8 +38,12 @@ func TestManagerUserAndOperatorPermissions(t *testing.T) {
 func TestManagerExplicitPermissionOverridesRoots(t *testing.T) {
 	manager := NewManager(NewMemoryOperatorStore())
 	user := testSubject{xuid: "1", name: "lexa"}
+	version := manager.PermissionVersion()
 	if err := manager.SetOperator(user.xuid, user.name, true); err != nil {
 		t.Fatalf("operatör kaydı yazılamadı: %v", err)
+	}
+	if manager.PermissionVersion() == version {
+		t.Fatal("operatör değişikliği permission sürümünü artırmalı")
 	}
 	if err := manager.SetPermission(user.xuid, CommandStop, Deny); err != nil {
 		t.Fatalf("permission yazılamadı: %v", err)
@@ -60,6 +64,31 @@ func TestManagerExplicitPermissionOverridesRoots(t *testing.T) {
 	}
 	if manager.CalculatePermission(plainUser, CommandStop) != Allow {
 		t.Fatal("açık grup permission çocuk izinlere yayılmalı")
+	}
+}
+
+func TestManagerSnapshot(t *testing.T) {
+	manager := NewManager(NewMemoryOperatorStore())
+	user := testSubject{xuid: "1", name: "lexa"}
+	if err := manager.SetOperator(user.xuid, user.name, true); err != nil {
+		t.Fatalf("operatör kaydı yazılamadı: %v", err)
+	}
+	if err := manager.SetPermission(user.xuid, CommandStop, Deny); err != nil {
+		t.Fatalf("permission yazılamadı: %v", err)
+	}
+
+	snapshot := manager.Snapshot(user)
+	if snapshot.Version() != manager.PermissionVersion() {
+		t.Fatal("snapshot güncel permission sürümünü taşımalı")
+	}
+	if !snapshot.Operator() {
+		t.Fatal("snapshot operatör durumunu taşımalı")
+	}
+	if snapshot.Permission(CommandStop) != Deny {
+		t.Fatal("snapshot açık deny kararını öncelemeli")
+	}
+	if snapshot.Permission("dfmc.command.custom") != Allow {
+		t.Fatal("operatör snapshot bilinmeyen permission için izin vermeli")
 	}
 }
 

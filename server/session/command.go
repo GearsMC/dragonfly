@@ -175,6 +175,18 @@ func (s *Session) sendAvailableCommands(co Controllable, softEnums map[string]st
 	return m
 }
 
+// RefreshPermissions, permission değişiminden sonra ability ve command tree bilgisinin yenilenmesini ister.
+// İşlem background döngüsünde tekilleştirilir; aynı tick içinde gelen birden fazla istek tek paket yenilemeye düşer.
+func (s *Session) RefreshPermissions() {
+	if s == Nop || s.permissionRefresh == nil {
+		return
+	}
+	select {
+	case s.permissionRefresh <- struct{}{}:
+	default:
+	}
+}
+
 type commandEnum struct {
 	Type    string
 	Options []string

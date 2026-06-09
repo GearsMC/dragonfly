@@ -40,6 +40,8 @@ type Session struct {
 	conn     Conn
 	handlers map[uint32]packetHandler
 	packets  chan packet.Packet
+	// permissionRefresh, permission değişimlerinde ability ve command tree yenilemesini background döngüsüne bildirir.
+	permissionRefresh chan struct{}
 
 	currentScoreboard atomic.Pointer[string]
 	currentLines      atomic.Pointer[[]string]
@@ -182,6 +184,7 @@ func (conf Config) New(conn Conn) *Session {
 	*s = Session{
 		openChunkTransactions:  make([]map[uint64]struct{}, 0, 8),
 		closeBackground:        make(chan struct{}),
+		permissionRefresh:      make(chan struct{}, 1),
 		handlers:               map[uint32]packetHandler{},
 		packets:                make(chan packet.Packet, 256),
 		entityRuntimeIDs:       map[*world.EntityHandle]uint64{},
@@ -406,6 +409,13 @@ func (s *Session) background() {
 	defer t.Stop()
 	for {
 		select {
+		case <-s.permissionRefresh:
+			s.ent.ExecWorld(func(tx *world.Tx, e world.Entity) {
+				c := e.(Controllable)
+				s.SendAbilities(c)
+				r = s.sendAvailableCommands(c, softEnums)
+				enums, enumValues = s.enums(c)
+			})
 		case <-t.C:
 			s.ent.ExecWorld(func(tx *world.Tx, e world.Entity) {
 				c := e.(Controllable)

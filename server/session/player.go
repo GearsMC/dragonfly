@@ -12,6 +12,7 @@ import (
 	_ "unsafe" // Imported for compiler directives.
 
 	"github.com/df-mc/dragonfly/server/block"
+	"github.com/df-mc/dragonfly/server/cmd"
 	"github.com/df-mc/dragonfly/server/entity"
 	"github.com/df-mc/dragonfly/server/entity/effect"
 	"github.com/df-mc/dragonfly/server/internal/nbtconv"
@@ -19,6 +20,7 @@ import (
 	"github.com/df-mc/dragonfly/server/item/creative"
 	"github.com/df-mc/dragonfly/server/item/inventory"
 	"github.com/df-mc/dragonfly/server/item/recipe"
+	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/player/debug"
 	"github.com/df-mc/dragonfly/server/player/dialogue"
 	"github.com/df-mc/dragonfly/server/player/form"
@@ -484,6 +486,16 @@ func (s *Session) SendGameMode(c Controllable) {
 // SendAbilities sends the abilities of the Controllable entity of the session to the client.
 func (s *Session) SendAbilities(c Controllable) {
 	mode, abilities := c.GameMode(), uint32(0)
+	playerPermission := byte(packet.PermissionLevelMember)
+	commandPermission := byte(protocol.CommandPermissionLevelAny)
+	if permissionSource, ok := c.(cmd.PermissionSource); ok {
+		if permissionSource.HasCommandPermission(permission.GroupOperator) {
+			playerPermission = packet.PermissionLevelOperator
+		}
+		if permissionSource.HasCommandPermission(permission.AbilityOperatorCommandQuickBar) {
+			commandPermission = protocol.CommandPermissionLevelGameDirectors
+		}
+	}
 	if mode.AllowsFlying() {
 		abilities |= protocol.AbilityMayFly
 		if c.Flying() {
@@ -511,8 +523,8 @@ func (s *Session) SendAbilities(c Controllable) {
 	}
 	s.writePacket(&packet.UpdateAbilities{AbilityData: protocol.AbilityData{
 		EntityUniqueID:     selfEntityRuntimeID,
-		PlayerPermissions:  packet.PermissionLevelMember,
-		CommandPermissions: protocol.CommandPermissionLevelAny,
+		PlayerPermissions:  playerPermission,
+		CommandPermissions: commandPermission,
 		Layers: []protocol.AbilityLayer{
 			{
 				Type:             protocol.AbilityLayerTypeBase,

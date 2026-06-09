@@ -340,7 +340,11 @@ func (srv *Server) IsOperatorXUID(xuid string) bool {
 // SetOperatorXUID, verilen XUID için operatör yetkisini kalıcı olarak ekler veya kaldırır.
 // lastKnownName yalnızca okunabilirlik için saklanır; yetki kararı her zaman XUID üzerinden verilir.
 func (srv *Server) SetOperatorXUID(xuid, lastKnownName string, value bool) error {
-	return srv.conf.Permissions.SetOperator(xuid, lastKnownName, value)
+	if err := srv.conf.Permissions.SetOperator(xuid, lastKnownName, value); err != nil {
+		return err
+	}
+	srv.refreshPermissionsByXUID(xuid)
+	return nil
 }
 
 // Operators, kayıtlı operatörleri XUID anahtarıyla döndürür.
@@ -360,7 +364,17 @@ func (srv *Server) PermissionsXUID(xuid string) map[string]permission.State {
 
 // SetPermissionXUID, verilen XUID için açık permission kararı yazar. Undefined verilirse kayıt silinir.
 func (srv *Server) SetPermissionXUID(xuid, name string, state permission.State) error {
-	return srv.conf.Permissions.SetPermission(xuid, name, state)
+	if err := srv.conf.Permissions.SetPermission(xuid, name, state); err != nil {
+		return err
+	}
+	srv.refreshPermissionsByXUID(xuid)
+	return nil
+}
+
+// RegisterPermission, yeni bir permission düğümünü kaydeder ve online oyuncuların snapshot'larını yeniler.
+func (srv *Server) RegisterPermission(perm permission.Permission) {
+	srv.conf.Permissions.Register(perm)
+	srv.refreshAllPermissions()
 }
 
 // CloseOnProgramEnd closes the server right before the program ends, so that
@@ -656,6 +670,39 @@ func (srv *Server) rememberIdentity(identity player.Identity) {
 	}
 	if err := srv.conf.Permissions.RememberOperatorIdentity(identity.XUID, identity.LastKnownName); err != nil {
 		srv.conf.Log.Warn("operatör kimlik kaydı güncellenemedi", "xuid", identity.XUID, "name", identity.LastKnownName, "err", err)
+	}
+}
+
+func (srv *Server) refreshPermissionsByXUID(xuid string) {
+	if xuid == "" {
+		return
+	}
+	srv.pmu.RLock()
+	online, ok := srv.px[xuid]
+	srv.pmu.RUnlock()
+	if !ok {
+		return
+	}
+	go online.handle.ExecWorld(func(tx *world.Tx, e world.Entity) {
+		if p, ok := e.(*player.Player); ok {
+			p.RefreshPermissions()
+		}
+	})
+}
+
+func (srv *Server) refreshAllPermissions() {
+	srv.pmu.RLock()
+	players := make([]*onlinePlayer, 0, len(srv.p))
+	for _, online := range srv.p {
+		players = append(players, online)
+	}
+	srv.pmu.RUnlock()
+	for _, online := range players {
+		go online.handle.ExecWorld(func(tx *world.Tx, e world.Entity) {
+			if p, ok := e.(*player.Player); ok {
+				p.RefreshPermissions()
+			}
+		})
 	}
 }
 

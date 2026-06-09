@@ -15,7 +15,8 @@ const (
 	CommandOP      = "dfmc.command.op"
 	CommandDeOP    = "dfmc.command.deop"
 
-	AbilityChat = "dfmc.ability.chat"
+	AbilityChat                    = "dfmc.ability.chat"
+	AbilityOperatorCommandQuickBar = "dfmc.ability.operator_command_quick_bar"
 )
 
 // RegisterDefaults, DFMC'nin temel kullanıcı ve operatör permission ağacını registry'ye ekler.
@@ -28,12 +29,13 @@ func RegisterDefaults(registry *Registry) {
 		AbilityChat:    true,
 	}))
 	registry.Register(New(GroupOperator, "Sunucu operatörü izinleri.").WithChildren(map[string]bool{
-		GroupUser:     true,
-		CommandStatus: true,
-		CommandTPS:    true,
-		CommandStop:   true,
-		CommandOP:     true,
-		CommandDeOP:   true,
+		GroupUser:                      true,
+		CommandStatus:                  true,
+		CommandTPS:                     true,
+		CommandStop:                    true,
+		CommandOP:                      true,
+		CommandDeOP:                    true,
+		AbilityOperatorCommandQuickBar: true,
 	}))
 	registry.Register(New(GroupConsole, "Konsol kaynaklarının tüm temel izinleri.").WithChildren(map[string]bool{
 		GroupOperator: true,
@@ -49,6 +51,7 @@ func RegisterDefaults(registry *Registry) {
 		New(CommandOP, "Oyuncuya operatör yetkisi verme izni."),
 		New(CommandDeOP, "Oyuncudan operatör yetkisi alma izni."),
 		New(AbilityChat, "Sohbet gönderme izni."),
+		New(AbilityOperatorCommandQuickBar, "Operatör komut hızlı erişim çubuğunu kullanma izni."),
 	} {
 		registry.Register(permission)
 	}
