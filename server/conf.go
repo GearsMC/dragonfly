@@ -180,6 +180,7 @@ func (conf Config) New() *Server {
 		conf:     conf,
 		incoming: make(chan incoming),
 		p:        make(map[uuid.UUID]*onlinePlayer),
+		px:       make(map[string]*onlinePlayer),
 		world:    &world.World{}, nether: &world.World{}, end: &world.World{},
 	}
 	for _, lf := range conf.Listeners {

@@ -2,17 +2,17 @@ package playerdb
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/df-mc/dragonfly/server/player"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/df-mc/goleveldb/leveldb"
 	"github.com/df-mc/goleveldb/leveldb/opt"
-	"github.com/google/uuid"
 	"os"
 )
 
 // Provider is a player data provider that uses a LevelDB database to store data. The data passed on
 // will first be converted to make sure it can be marshaled into JSON. This JSON (in bytes) will then
-// be stored in the database under a key that is the byte representation of the player's UUID.
+// be stored in the database under a key derived from the player's XUID.
 type Provider struct {
 	db *leveldb.DB
 }
@@ -31,17 +31,24 @@ func NewProvider(path string) (*Provider, error) {
 }
 
 // Save ...
-func (p *Provider) Save(id uuid.UUID, d player.Config, w *world.World) error {
+func (p *Provider) Save(xuid string, d player.Config, w *world.World) error {
+	if xuid == "" {
+		return fmt.Errorf("xuid boş olamaz")
+	}
+	d.XUID = xuid
 	b, err := json.Marshal(p.toJson(d, w))
 	if err != nil {
 		return err
 	}
-	return p.db.Put(id[:], b, nil)
+	return p.db.Put(playerKey(xuid), b, nil)
 }
 
 // Load ...
-func (p *Provider) Load(id uuid.UUID, lookupWorld player.WorldLookup) (player.Config, *world.World, error) {
-	b, err := p.db.Get(id[:], nil)
+func (p *Provider) Load(xuid string, lookupWorld player.WorldLookup) (player.Config, *world.World, error) {
+	if xuid == "" {
+		return player.Config{}, nil, fmt.Errorf("xuid boş olamaz")
+	}
+	b, err := p.db.Get(playerKey(xuid), nil)
 	if err != nil {
 		return player.Config{}, nil, err
 	}
@@ -51,6 +58,10 @@ func (p *Provider) Load(id uuid.UUID, lookupWorld player.WorldLookup) (player.Co
 		return player.Config{}, nil, err
 	}
 	return p.fromJson(d, lookupWorld)
+}
+
+func playerKey(xuid string) []byte {
+	return []byte("xuid:" + xuid)
 }
 
 // Close ...

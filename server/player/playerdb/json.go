@@ -25,10 +25,14 @@ func (p *Provider) fromJson(d jsonData, lookupWorld player.WorldLookup) (player.
 		return player.Config{}, nil, fmt.Errorf("oyuncu dünyası %q dimension %d içinde çözümlenemedi", d.World, d.Dimension)
 	}
 	mode, _ := world.GameModeByID(int(d.GameMode))
+	name := d.LastKnownName
+	if name == "" {
+		name = d.Username
+	}
 	conf := player.Config{
 		UUID:                uuid.MustParse(d.UUID),
 		XUID:                d.XUID,
-		Name:                d.Username,
+		Name:                name,
 		Position:            d.Position,
 		Rotation:            cube.Rotation{d.Yaw, d.Pitch},
 		Velocity:            d.Velocity,
@@ -75,7 +79,7 @@ func (p *Provider) toJson(d player.Config, w *world.World) jsonData {
 	return jsonData{
 		UUID:            d.UUID.String(),
 		XUID:            d.XUID,
-		Username:        d.Name,
+		LastKnownName:   d.Name,
 		Position:        d.Position,
 		Velocity:        d.Velocity,
 		Yaw:             d.Rotation.Yaw(),
@@ -112,7 +116,8 @@ func (p *Provider) toJson(d player.Config, w *world.World) jsonData {
 type jsonData struct {
 	UUID                             string
 	XUID                             string
-	Username                         string
+	LastKnownName                    string
+	Username                         string `json:"Username,omitempty"`
 	Position, Velocity               mgl64.Vec3
 	Yaw, Pitch                       float64
 	Health, MaxHealth                float64

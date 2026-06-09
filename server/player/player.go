@@ -126,17 +126,13 @@ func (p *Player) Tx() *world.Tx {
 	return p.tx
 }
 
-// Name returns the username of the player. If the player is controlled by a client, it is the username of
-// the client. (Typically the XBOX Live name)
+// Name, oyuncunun doğrulanmış Xbox Live adını döndürür. NameTag değişiklikleri bu değeri değiştirmez.
 func (p *Player) Name() string {
-	// TODO: This isn't correct, this will change if the nametag changes.
 	return p.data.Name
 }
 
-// UUID returns the UUID of the player. This UUID will remain consistent with an XBOX Live account, and will,
-// unlike the name of the player, never change.
-// It is therefore recommended using the UUID over the name of the player. Additionally, it is recommended to
-// use the UUID over the XUID because of its standard format.
+// UUID, oyuncunun ağ/protokol UUID değerini döndürür. Kalıcı oyuncu verisi için ana kimlik değildir;
+// SkyBuild hesap verilerinde XUID kullanılmalıdır.
 func (p *Player) UUID() uuid.UUID {
 	return p.handle.UUID()
 }
@@ -145,8 +141,7 @@ func (p *Player) UUID() uuid.UUID {
 // hesabın kullanım ömrü boyunca değişmez. Server tarafından kabul edilen oyuncuların XUID değeri her zaman
 // doludur. Doğrulanmış bir ağ bağlantısı olmadan oluşturulan Player için XUID boş olabilir.
 //
-// XUID, int64 olarak ayrıştırılabilen bir sayıdır. Neyi temsil ettiği hakkında daha fazla bilgi
-// bulunmadığından UUID tercih edilmelidir.
+// Kalıcı oyuncu verisi, isim değişikliklerinde veri kaybı yaşanmaması için XUID ile anahtarlanır.
 func (p *Player) XUID() string {
 	return p.xuid
 }
@@ -3178,7 +3173,7 @@ func (p *Player) Data() Config {
 		Skin:                p.skin,
 		XUID:                p.xuid,
 		UUID:                p.UUID(),
-		Name:                p.nameTag,
+		Name:                p.Name(),
 		Locale:              p.locale,
 		GameMode:            p.gameMode,
 		Position:            p.Position(),

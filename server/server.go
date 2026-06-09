@@ -57,6 +57,8 @@ type Server struct {
 	// p holds a map of all players currently connected to the server. When they
 	// leave, they are removed from the map.
 	p map[uuid.UUID]*onlinePlayer
+	// px, online oyuncuları XUID ile hızlı bulmak için tutulur. Kalıcı hesap kimliği XUID'dir.
+	px map[string]*onlinePlayer
 	// pwg is a sync.WaitGroup used to wait for all players to be disconnected
 	// before server shutdown, so that their data is saved properly.
 	pwg sync.WaitGroup
@@ -135,6 +137,7 @@ func (srv *Server) Accept() iter.Seq[*player.Player] {
 			}
 			srv.pmu.Lock()
 			srv.p[inc.p.handle.UUID()] = inc.p
+			srv.px[inc.p.xuid] = inc.p
 			srv.pmu.Unlock()
 
 			ret := false
@@ -263,12 +266,13 @@ func (srv *Server) PlayerByName(name string) (*world.EntityHandle, bool) {
 // found, the entity handle is returned and the bool returned is true. If no
 // player with the XUID was found, nil and false are returned.
 func (srv *Server) PlayerByXUID(xuid string) (*world.EntityHandle, bool) {
-	if p, ok := sliceutil.SearchValue(slices.Collect(maps.Values(srv.p)), func(p *onlinePlayer) bool {
-		return p.xuid == xuid
-	}); ok {
-		return p.handle, true
+	srv.pmu.RLock()
+	defer srv.pmu.RUnlock()
+	p, ok := srv.px[xuid]
+	if !ok {
+		return nil, false
 	}
-	return nil, false
+	return p.handle, true
 }
 
 // CloseOnProgramEnd closes the server right before the program ends, so that
@@ -429,10 +433,12 @@ func (srv *Server) wait() {
 // finaliseConn finalises the session.Conn passed and adds it to the incoming
 // channel.
 func (srv *Server) finaliseConn(ctx context.Context, conn session.Conn, l Listener) {
-	id := uuid.MustParse(conn.IdentityData().Identity)
+	identityData := conn.IdentityData()
+	id := uuid.MustParse(identityData.Identity)
+	xuid := identityData.XUID
 	data := srv.defaultGameData()
 
-	d, w, err := srv.conf.PlayerProvider.Load(id, srv.lookupWorld)
+	d, w, err := srv.conf.PlayerProvider.Load(xuid, srv.lookupWorld)
 	if err != nil || w == nil {
 		w = srv.world
 		d.Position = w.Spawn().Vec3Centre()
@@ -452,9 +458,14 @@ func (srv *Server) finaliseConn(ctx context.Context, conn session.Conn, l Listen
 		srv.conf.Log.Debug("spawn failed: "+err.Error(), "raddr", conn.RemoteAddr())
 		return
 	}
-	if _, ok := srv.Player(id); ok {
+	if _, ok := srv.PlayerByXUID(xuid); ok {
 		_ = l.Disconnect(conn, "Already logged in.")
 		srv.conf.Log.Debug("spawn failed: already logged in", "raddr", conn.RemoteAddr())
+		return
+	}
+	if _, ok := srv.Player(id); ok {
+		_ = l.Disconnect(conn, "Already logged in.")
+		srv.conf.Log.Debug("spawn failed: already logged in UUID", "raddr", conn.RemoteAddr())
 		return
 	}
 	_ = conn.WritePacket(&packet.ItemRegistry{Items: srv.customItems})
@@ -510,8 +521,13 @@ func (srv *Server) lookupWorld(name string, dimension world.Dimension) *world.Wo
 // of the session from the server.
 func (srv *Server) handleSessionClose(tx *world.Tx, c session.Controllable) {
 	srv.pmu.Lock()
-	_, ok := srv.p[c.UUID()]
+	online, ok := srv.p[c.UUID()]
 	delete(srv.p, c.UUID())
+	if ok {
+		delete(srv.px, online.xuid)
+	} else {
+		delete(srv.px, c.XUID())
+	}
 	srv.pmu.Unlock()
 	if !ok {
 		// When a player disconnects immediately after a session is started, it
@@ -520,7 +536,7 @@ func (srv *Server) handleSessionClose(tx *world.Tx, c session.Controllable) {
 		return
 	}
 
-	if err := srv.conf.PlayerProvider.Save(c.UUID(), c.(*player.Player).Data(), tx.World()); err != nil {
+	if err := srv.conf.PlayerProvider.Save(c.XUID(), c.(*player.Player).Data(), tx.World()); err != nil {
 		srv.conf.Log.Error("Save player data: " + err.Error())
 	}
 	srv.pwg.Done()

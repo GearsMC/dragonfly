@@ -1,11 +1,13 @@
 package playerdb
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/df-mc/dragonfly/server/item/inventory"
 	"github.com/df-mc/dragonfly/server/player"
 	"github.com/df-mc/dragonfly/server/world"
+	"github.com/df-mc/goleveldb/leveldb"
 	"github.com/google/uuid"
 )
 
@@ -19,6 +21,9 @@ func TestWorldIdentityRoundTrip(t *testing.T) {
 	}
 	if data.Dimension != 1 {
 		t.Fatalf("beklenmeyen dimension kimliği: %d", data.Dimension)
+	}
+	if data.LastKnownName != "lexa5936" {
+		t.Fatalf("beklenmeyen son bilinen isim: %q", data.LastKnownName)
 	}
 
 	var lookupName string
@@ -35,6 +40,24 @@ func TestWorldIdentityRoundTrip(t *testing.T) {
 	}
 	if loadedWorld != w {
 		t.Fatal("yüklenen dünya kaydedilen dünyayla eşleşmiyor")
+	}
+}
+
+func TestLegacyUsernameLoadsAsLastKnownName(t *testing.T) {
+	w := testWorld(t, "World", world.Overworld)
+	provider := &Provider{}
+	data := provider.toJson(testConfig(), w)
+	data.LastKnownName = ""
+	data.Username = "legacyName"
+
+	conf, _, err := provider.fromJson(data, func(string, world.Dimension) *world.World {
+		return w
+	})
+	if err != nil {
+		t.Fatalf("eski isim alanı yüklenemedi: %v", err)
+	}
+	if conf.Name != "legacyName" {
+		t.Fatalf("eski isim alanı son bilinen isim olarak yüklenmedi: %q", conf.Name)
 	}
 }
 
@@ -70,6 +93,57 @@ func TestMissingWorldIdentityRejected(t *testing.T) {
 	}
 }
 
+func TestProviderStoresPlayerDataByXUID(t *testing.T) {
+	provider, err := NewProvider(t.TempDir())
+	if err != nil {
+		t.Fatalf("provider açılamadı: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = provider.Close()
+	})
+
+	w := testWorld(t, "World", world.Overworld)
+	conf := testConfig()
+	conf.XUID = "2535457450295374"
+	conf.Name = "lexa5936"
+	oldUUID := conf.UUID
+
+	if err := provider.Save(conf.XUID, conf, w); err != nil {
+		t.Fatalf("oyuncu verisi XUID ile kaydedilemedi: %v", err)
+	}
+	if _, err := provider.db.Get(oldUUID[:], nil); !errors.Is(err, leveldb.ErrNotFound) {
+		t.Fatalf("oyuncu verisi UUID key altında yazılmamalıydı: %v", err)
+	}
+
+	conf.UUID = uuid.New()
+	conf.Name = "lexaNew"
+	if err := provider.Save(conf.XUID, conf, w); err != nil {
+		t.Fatalf("isim değişen oyuncu verisi XUID ile güncellenemedi: %v", err)
+	}
+
+	loaded, loadedWorld, err := provider.Load(conf.XUID, func(name string, dimension world.Dimension) *world.World {
+		if name == "World" && dimension == world.Overworld {
+			return w
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("oyuncu verisi XUID ile yüklenemedi: %v", err)
+	}
+	if loadedWorld != w {
+		t.Fatal("oyuncu verisi yanlış dünyaya yüklendi")
+	}
+	if loaded.XUID != conf.XUID {
+		t.Fatalf("beklenmeyen XUID: %q", loaded.XUID)
+	}
+	if loaded.UUID != conf.UUID {
+		t.Fatalf("beklenmeyen UUID: %v", loaded.UUID)
+	}
+	if loaded.Name != "lexaNew" {
+		t.Fatalf("son bilinen isim güncellenmedi: %q", loaded.Name)
+	}
+}
+
 func testWorld(t *testing.T, name string, dimension world.Dimension) *world.World {
 	t.Helper()
 	w := world.Config{
@@ -85,6 +159,7 @@ func testWorld(t *testing.T, name string, dimension world.Dimension) *world.Worl
 func testConfig() player.Config {
 	return player.Config{
 		UUID:                uuid.New(),
+		XUID:                "2535457450295374",
 		Name:                "lexa5936",
 		GameMode:            world.GameModeSurvival,
 		Inventory:           inventory.New(36, nil),
