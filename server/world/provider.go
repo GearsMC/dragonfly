@@ -1,10 +1,8 @@
 package world
 
 import (
-	"github.com/df-mc/dragonfly/server/block/cube"
 	"github.com/df-mc/dragonfly/server/world/chunk"
 	"github.com/df-mc/goleveldb/leveldb"
-	"github.com/google/uuid"
 	"io"
 )
 
@@ -17,11 +15,6 @@ type Provider interface {
 	// SaveSettings saves the settings of a World.
 	SaveSettings(*Settings)
 
-	// LoadPlayerSpawnPosition loads the player spawn point if found, otherwise an error will be returned.
-	LoadPlayerSpawnPosition(uuid uuid.UUID) (pos cube.Pos, exists bool, err error)
-	// SavePlayerSpawnPosition saves the player spawn point. In vanilla, this can be done with beds in the overworld
-	// or respawn anchors in the nether.
-	SavePlayerSpawnPosition(uuid uuid.UUID, pos cube.Pos) error
 	// LoadColumn reads a world.Column from the DB at a position and dimension
 	// in the DB. If no column at that position exists, errors.Is(err,
 	// leveldb.ErrNotFound) equals true.
@@ -53,8 +46,4 @@ func (NopProvider) LoadColumn(ChunkPos, Dimension) (*chunk.Column, error) {
 	return nil, leveldb.ErrNotFound
 }
 func (NopProvider) StoreColumn(ChunkPos, Dimension, *chunk.Column) error { return nil }
-func (NopProvider) LoadPlayerSpawnPosition(uuid.UUID) (cube.Pos, bool, error) {
-	return cube.Pos{}, false, nil
-}
-func (NopProvider) SavePlayerSpawnPosition(uuid.UUID, cube.Pos) error { return nil }
-func (NopProvider) Close() error                                      { return nil }
+func (NopProvider) Close() error                                         { return nil }

@@ -16,6 +16,8 @@ type Sleeper interface {
 	Messaget(t chat.Translation, a ...any)
 	SendSleepingIndicator(sleeping, max int)
 
+	SpawnPosition() (cube.Pos, *World, bool)
+	SetSpawnPosition(pos cube.Pos, w *World)
 	Sleep(pos cube.Pos)
 	Sleeping() (cube.Pos, bool)
 	Wake()

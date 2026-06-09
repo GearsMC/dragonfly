@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/df-mc/dragonfly/server/block/cube"
 	"github.com/df-mc/dragonfly/server/item/inventory"
 	"github.com/df-mc/dragonfly/server/player"
 	"github.com/df-mc/dragonfly/server/world"
@@ -13,8 +14,11 @@ import (
 
 func TestWorldIdentityRoundTrip(t *testing.T) {
 	w := testWorld(t, "island-42", world.Nether)
+	spawnWorld := testWorld(t, "spawn-island", world.Overworld)
 	provider := &Provider{}
-	data := provider.toJson(testConfig(), w)
+	conf := testConfig()
+	conf.Spawn = player.Spawn{Position: cube.Pos{12, 64, -5}, World: spawnWorld, Valid: true}
+	data := provider.toJson(conf, w)
 
 	if data.World != "island-42" {
 		t.Fatalf("beklenmeyen dünya adı: %q", data.World)
@@ -25,21 +29,34 @@ func TestWorldIdentityRoundTrip(t *testing.T) {
 	if data.LastKnownName != "lexa5936" {
 		t.Fatalf("beklenmeyen son bilinen isim: %q", data.LastKnownName)
 	}
+	if !data.SpawnValid || data.SpawnWorld != "spawn-island" || data.SpawnDimension != 0 || data.SpawnPosition != (cube.Pos{12, 64, -5}) {
+		t.Fatalf("beklenmeyen spawn verisi: geçerli=%t dünya=%q dimension=%d pozisyon=%v", data.SpawnValid, data.SpawnWorld, data.SpawnDimension, data.SpawnPosition)
+	}
 
-	var lookupName string
-	var lookupDimension world.Dimension
-	_, loadedWorld, err := provider.fromJson(data, func(name string, dimension world.Dimension) *world.World {
-		lookupName, lookupDimension = name, dimension
-		return w
+	var lookedUpPlayerWorld, lookedUpSpawnWorld bool
+	loaded, loadedWorld, err := provider.fromJson(data, func(name string, dimension world.Dimension) *world.World {
+		switch {
+		case name == "island-42" && dimension == world.Nether:
+			lookedUpPlayerWorld = true
+			return w
+		case name == "spawn-island" && dimension == world.Overworld:
+			lookedUpSpawnWorld = true
+			return spawnWorld
+		default:
+			return nil
+		}
 	})
 	if err != nil {
 		t.Fatalf("oyuncu verisi yüklenemedi: %v", err)
 	}
-	if lookupName != "island-42" || lookupDimension != world.Nether {
-		t.Fatalf("beklenmeyen dünya araması: ad=%q dimension=%v", lookupName, lookupDimension)
+	if !lookedUpPlayerWorld || !lookedUpSpawnWorld {
+		t.Fatalf("oyuncu ve spawn dünyalarının birlikte aranması bekleniyordu: oyuncu=%t spawn=%t", lookedUpPlayerWorld, lookedUpSpawnWorld)
 	}
 	if loadedWorld != w {
 		t.Fatal("yüklenen dünya kaydedilen dünyayla eşleşmiyor")
+	}
+	if loaded.Spawn.World != spawnWorld || loaded.Spawn.Position != (cube.Pos{12, 64, -5}) || !loaded.Spawn.Valid {
+		t.Fatalf("spawn verisi doğru yüklenmedi: %+v", loaded.Spawn)
 	}
 }
 
@@ -90,6 +107,30 @@ func TestMissingWorldIdentityRejected(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("bulunmayan oyuncu dünyasının reddedilmesi bekleniyordu")
+	}
+}
+
+func TestMissingSpawnWorldClearsSpawnOnly(t *testing.T) {
+	w := testWorld(t, "World", world.Overworld)
+	spawnWorld := testWorld(t, "deleted-spawn", world.Overworld)
+	conf := testConfig()
+	conf.Spawn = player.Spawn{Position: cube.Pos{5, 70, 5}, World: spawnWorld, Valid: true}
+	data := (&Provider{}).toJson(conf, w)
+
+	loaded, loadedWorld, err := (&Provider{}).fromJson(data, func(name string, dimension world.Dimension) *world.World {
+		if name == "World" && dimension == world.Overworld {
+			return w
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("spawn dünyası silinen oyuncu verisi yüklenemedi: %v", err)
+	}
+	if loadedWorld != w {
+		t.Fatal("ana oyuncu dünyası yüklenmedi")
+	}
+	if loaded.Spawn.Valid || loaded.Spawn.World != nil {
+		t.Fatalf("silinmiş spawn dünyası geçerli kalmamalıydı: %+v", loaded.Spawn)
 	}
 }
 

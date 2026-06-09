@@ -29,6 +29,14 @@ func (p *Provider) fromJson(d jsonData, lookupWorld player.WorldLookup) (player.
 	if name == "" {
 		name = d.Username
 	}
+	spawn := player.Spawn{}
+	if d.SpawnValid {
+		if spawnDim, ok := world.DimensionByID(int(d.SpawnDimension)); ok {
+			if spawnWorld := lookupWorld(d.SpawnWorld, spawnDim); spawnWorld != nil {
+				spawn = player.Spawn{Position: d.SpawnPosition, World: spawnWorld, Valid: true}
+			}
+		}
+	}
 	conf := player.Config{
 		UUID:                uuid.MustParse(d.UUID),
 		XUID:                d.XUID,
@@ -54,6 +62,7 @@ func (p *Provider) fromJson(d jsonData, lookupWorld player.WorldLookup) (player.
 		EnderChestInventory: inventory.New(27, nil),
 		OffHand:             inventory.New(1, nil),
 		Armour:              inventory.NewArmour(nil),
+		Spawn:               spawn,
 	}
 	echest := make([]item.Stack, 27)
 	decodeItems(d.EnderChestInventory, echest)
@@ -76,7 +85,7 @@ func (p *Provider) toJson(d player.Config, w *world.World) jsonData {
 	dim, _ := world.DimensionID(w.Dimension())
 	mode, _ := world.GameModeID(d.GameMode)
 	offHand, _ := d.OffHand.Item(0)
-	return jsonData{
+	data := jsonData{
 		UUID:            d.UUID.String(),
 		XUID:            d.XUID,
 		LastKnownName:   d.Name,
@@ -111,6 +120,14 @@ func (p *Provider) toJson(d player.Config, w *world.World) jsonData {
 		World:               w.Name(),
 		Dimension:           uint8(dim),
 	}
+	if d.Spawn.Valid && d.Spawn.World != nil {
+		spawnDim, _ := world.DimensionID(d.Spawn.World.Dimension())
+		data.SpawnValid = true
+		data.SpawnPosition = d.Spawn.Position
+		data.SpawnWorld = d.Spawn.World.Name()
+		data.SpawnDimension = uint8(spawnDim)
+	}
+	return data
 }
 
 type jsonData struct {
@@ -135,6 +152,10 @@ type jsonData struct {
 	FallDistance                     float64
 	World                            string
 	Dimension                        uint8
+	SpawnValid                       bool
+	SpawnPosition                    cube.Pos
+	SpawnWorld                       string
+	SpawnDimension                   uint8
 }
 
 type jsonInventoryData struct {

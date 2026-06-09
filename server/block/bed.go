@@ -135,9 +135,9 @@ func (b Bed) Activate(pos cube.Pos, _ cube.Face, tx *world.Tx, u item.User, _ *i
 		return false
 	}
 
-	previousSpawn := w.PlayerSpawn(s.UUID())
-	if previousSpawn != headPos {
-		w.SetPlayerSpawn(s.UUID(), headPos)
+	previousSpawn, previousWorld, hasSpawn := s.SpawnPosition()
+	if !hasSpawn || previousWorld != w || previousSpawn != headPos {
+		s.SetSpawnPosition(headPos, w)
 		s.Messaget(chat.MessageRespawnPointSet)
 	}
 

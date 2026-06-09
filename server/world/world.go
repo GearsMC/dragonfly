@@ -20,7 +20,6 @@ import (
 	"github.com/df-mc/dragonfly/server/world/redstone"
 	"github.com/df-mc/goleveldb/leveldb"
 	"github.com/go-gl/mathgl/mgl64"
-	"github.com/google/uuid"
 )
 
 // World implements a Minecraft world. It manages all aspects of what players
@@ -853,34 +852,6 @@ func (w *World) SetSpawn(pos cube.Pos) {
 	viewers, _ := w.allViewers()
 	for _, viewer := range viewers {
 		viewer.ViewWorldSpawn(pos)
-	}
-}
-
-// PlayerSpawn returns the spawn position of a player with a UUID in this World.
-func (w *World) PlayerSpawn(id uuid.UUID) cube.Pos {
-	if w == nil {
-		return cube.Pos{}
-	}
-	pos, exist, err := w.conf.Provider.LoadPlayerSpawnPosition(id)
-	if err != nil {
-		w.conf.Log.Error("load player spawn: "+err.Error(), "ID", id)
-		return w.Spawn()
-	}
-	if !exist {
-		return w.Spawn()
-	}
-	return pos
-}
-
-// SetPlayerSpawn sets the spawn position of a player with a UUID in this
-// World. If the player has a spawn in the world, the player will be teleported
-// to this location on respawn.
-func (w *World) SetPlayerSpawn(id uuid.UUID, pos cube.Pos) {
-	if w == nil {
-		return
-	}
-	if err := w.conf.Provider.SavePlayerSpawnPosition(id, pos); err != nil {
-		w.conf.Log.Error("save player spawn: "+err.Error(), "ID", id)
 	}
 }
 

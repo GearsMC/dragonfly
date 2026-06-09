@@ -45,6 +45,14 @@ type Config struct {
 	FireTicks              int64
 	FallDistance           float64
 	Effects                []effect.Effect
+	Spawn                  Spawn
+}
+
+// Spawn, oyuncunun XUID tabanlı kayıt içinde tutulan kişisel yeniden doğma noktasını temsil eder.
+type Spawn struct {
+	Position cube.Pos
+	World    *world.World
+	Valid    bool
 }
 
 // Apply applies fields from a Config to a world.EntityData, filling out empty
@@ -84,6 +92,7 @@ func (cfg Config) Apply(data *world.EntityData) {
 		nameTag:             conf.Name,
 		fireTicks:           conf.FireTicks,
 		fallDistance:        conf.FallDistance,
+		spawn:               conf.Spawn,
 	}
 	pdata.hunger.foodLevel, pdata.hunger.foodTick, pdata.hunger.exhaustionLevel, pdata.hunger.saturationLevel = conf.Food, conf.FoodTick, conf.Exhaustion, conf.Saturation
 	pdata.experience.Add(conf.Experience)

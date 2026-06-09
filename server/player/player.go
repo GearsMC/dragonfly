@@ -60,6 +60,7 @@ type playerData struct {
 
 	sleeping bool
 	sleepPos cube.Pos
+	spawn    Spawn
 
 	usingSince time.Time
 
@@ -420,6 +421,16 @@ func (p *Player) SetNameTag(name string) {
 // NameTag returns the current name tag of the Player as shown in-game. It can be changed using SetNameTag.
 func (p *Player) NameTag() string {
 	return p.nameTag
+}
+
+// SpawnPosition, oyuncunun XUID tabanlı kayıt içinde tutulan kişisel yeniden doğma noktasını döndürür.
+func (p *Player) SpawnPosition() (cube.Pos, *world.World, bool) {
+	return p.spawn.Position, p.spawn.World, p.spawn.Valid && p.spawn.World != nil
+}
+
+// SetSpawnPosition, oyuncunun kişisel yeniden doğma noktasını XUID tabanlı oyuncu datasına yazar.
+func (p *Player) SetSpawnPosition(pos cube.Pos, w *world.World) {
+	p.spawn = Spawn{Position: pos, World: w, Valid: w != nil}
 }
 
 // SetScoreTag changes the score tag displayed over the player in-game. The score tag is displayed under the player's
@@ -960,21 +971,39 @@ func (p *Player) respawn(f func(p *Player)) {
 // spawnLocation designates a players safe spawn location.
 func (p *Player) spawnLocation() (playerSpawn cube.Pos, w *world.World, spawnBlockBroken bool, previousDimension world.Dimension) {
 	tx := p.tx
-	w = tx.World()
-	previousDimension = w.Dimension()
-	playerSpawn = w.PlayerSpawn(p.UUID())
-	if b, ok := tx.Block(playerSpawn).(block.Bed); ok && b.CanRespawnOn() {
-		pos, ok := b.SafeSpawn(playerSpawn, tx)
-		if ok {
-			return pos, w, false, previousDimension
-		}
+	currentWorld := tx.World()
+	previousDimension = currentWorld.Dimension()
+
+	playerSpawn, spawnWorld, ok := p.SpawnPosition()
+	if !ok {
+		respawnWorld := currentWorld.PortalDestination(currentWorld.Dimension())
+		return respawnWorld.Spawn(), respawnWorld, false, previousDimension
 	}
 
-	// We can use the principle here that returning through a portal of a specific dimension inside that dimension will
-	// always bring us back to the overworld.
-	w = w.PortalDestination(w.Dimension())
-	worldSpawn := w.Spawn()
-	return worldSpawn, w, playerSpawn != worldSpawn, previousDimension
+	if spawnWorld == currentWorld {
+		if b, ok := tx.Block(playerSpawn).(block.Bed); ok && b.CanRespawnOn() {
+			pos, ok := b.SafeSpawn(playerSpawn, tx)
+			if ok {
+				return pos, spawnWorld, false, previousDimension
+			}
+		}
+		respawnWorld := currentWorld.PortalDestination(currentWorld.Dimension())
+		return respawnWorld.Spawn(), respawnWorld, true, previousDimension
+	}
+
+	var safePos cube.Pos
+	var safe bool
+	<-spawnWorld.Exec(func(tx *world.Tx) {
+		if b, ok := tx.Block(playerSpawn).(block.Bed); ok && b.CanRespawnOn() {
+			safePos, safe = b.SafeSpawn(playerSpawn, tx)
+		}
+	})
+	if safe {
+		return safePos, spawnWorld, false, previousDimension
+	}
+
+	respawnWorld := currentWorld.PortalDestination(currentWorld.Dimension())
+	return respawnWorld.Spawn(), respawnWorld, true, previousDimension
 }
 
 // StartSprinting makes a player start sprinting, increasing the speed of the player by 30% and making
@@ -3197,6 +3226,7 @@ func (p *Player) Data() Config {
 		FireTicks:           p.fireTicks,
 		FallDistance:        p.fallDistance,
 		Effects:             p.Effects(),
+		Spawn:               p.spawn,
 	}
 }
 
