@@ -21,6 +21,7 @@ import (
 	"github.com/df-mc/dragonfly/server/internal/iteminternal"
 	"github.com/df-mc/dragonfly/server/internal/sliceutil"
 	_ "github.com/df-mc/dragonfly/server/item" // Imported for maintaining correct initialisation order.
+	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/player"
 	"github.com/df-mc/dragonfly/server/player/chat"
 	"github.com/df-mc/dragonfly/server/player/skin"
@@ -331,6 +332,37 @@ func (srv *Server) ResolveIdentityByXUID(xuid string) (player.Identity, bool, er
 	return provider.LookupIdentityByXUID(xuid)
 }
 
+// IsOperatorXUID, XUID ile kayıtlı hesabın operatör olup olmadığını döndürür.
+func (srv *Server) IsOperatorXUID(xuid string) bool {
+	return srv.conf.Permissions.IsOperator(xuid)
+}
+
+// SetOperatorXUID, verilen XUID için operatör yetkisini kalıcı olarak ekler veya kaldırır.
+// lastKnownName yalnızca okunabilirlik için saklanır; yetki kararı her zaman XUID üzerinden verilir.
+func (srv *Server) SetOperatorXUID(xuid, lastKnownName string, value bool) error {
+	return srv.conf.Permissions.SetOperator(xuid, lastKnownName, value)
+}
+
+// Operators, kayıtlı operatörleri XUID anahtarıyla döndürür.
+func (srv *Server) Operators() []permission.Operator {
+	return srv.conf.Permissions.Operators()
+}
+
+// PermissionXUID, verilen XUID için açık permission kararını döndürür.
+func (srv *Server) PermissionXUID(xuid, name string) (permission.State, bool) {
+	return srv.conf.Permissions.Permission(xuid, name)
+}
+
+// PermissionsXUID, verilen XUID için yazılmış açık permission kararlarını döndürür.
+func (srv *Server) PermissionsXUID(xuid string) map[string]permission.State {
+	return srv.conf.Permissions.Permissions(xuid)
+}
+
+// SetPermissionXUID, verilen XUID için açık permission kararı yazar. Undefined verilirse kayıt silinir.
+func (srv *Server) SetPermissionXUID(xuid, name string, state permission.State) error {
+	return srv.conf.Permissions.SetPermission(xuid, name, state)
+}
+
 // CloseOnProgramEnd closes the server right before the program ends, so that
 // all data of the server are saved properly.
 func (srv *Server) CloseOnProgramEnd() {
@@ -366,6 +398,11 @@ func (srv *Server) close() {
 	srv.conf.Log.Debug("Closing player provider...")
 	if err := srv.conf.PlayerProvider.Close(); err != nil {
 		srv.conf.Log.Error("Close player provider: " + err.Error())
+	}
+
+	srv.conf.Log.Debug("Closing permission provider...")
+	if err := srv.conf.Permissions.Close(); err != nil {
+		srv.conf.Log.Error("Close permission provider: " + err.Error())
 	}
 
 	srv.conf.Log.Debug("Closing worlds...")
@@ -612,11 +649,13 @@ func (srv *Server) handleSessionClose(tx *world.Tx, c session.Controllable) {
 
 func (srv *Server) rememberIdentity(identity player.Identity) {
 	provider, ok := srv.conf.PlayerProvider.(player.IdentityProvider)
-	if !ok {
-		return
+	if ok {
+		if err := provider.RememberIdentity(identity); err != nil {
+			srv.conf.Log.Warn("oyuncu kimlik indeksi güncellenemedi", "xuid", identity.XUID, "name", identity.LastKnownName, "err", err)
+		}
 	}
-	if err := provider.RememberIdentity(identity); err != nil {
-		srv.conf.Log.Warn("oyuncu kimlik indeksi güncellenemedi", "xuid", identity.XUID, "name", identity.LastKnownName, "err", err)
+	if err := srv.conf.Permissions.RememberOperatorIdentity(identity.XUID, identity.LastKnownName); err != nil {
+		srv.conf.Log.Warn("operatör kimlik kaydı güncellenemedi", "xuid", identity.XUID, "name", identity.LastKnownName, "err", err)
 	}
 }
 
@@ -641,6 +680,7 @@ func (srv *Server) createPlayer(id uuid.UUID, conn session.Conn, conf player.Con
 	conf.Locale, _ = language.Parse(strings.Replace(conn.ClientData().LanguageCode, "_", "-", 1))
 	conf.Skin = srv.parseSkin(conn.ClientData())
 	conf.Session = s
+	conf.PermissionCalculator = srv.conf.Permissions
 
 	handle := world.EntitySpawnOpts{Position: conf.Position, ID: id}.New(player.Type, conf)
 	s.SetHandle(handle, conf.Skin)

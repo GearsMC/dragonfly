@@ -5,6 +5,7 @@ import (
 	"github.com/df-mc/dragonfly/server/entity"
 	"github.com/df-mc/dragonfly/server/entity/effect"
 	"github.com/df-mc/dragonfly/server/item/inventory"
+	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/player/skin"
 	"github.com/df-mc/dragonfly/server/session"
 	"github.com/df-mc/dragonfly/server/world"
@@ -24,6 +25,8 @@ type Config struct {
 	Name     string
 	Locale   language.Tag
 	GameMode world.GameMode
+	// PermissionCalculator, oyuncunun XUID tabanlı permission kararlarını hesaplar.
+	PermissionCalculator permission.Calculator
 
 	Position               mgl64.Vec3
 	Rotation               cube.Rotation
@@ -63,36 +66,37 @@ func (cfg Config) Apply(data *world.EntityData) {
 	data.Name, data.Pos, data.Rot = conf.Name, conf.Position, conf.Rotation
 	slot := uint32(conf.HeldSlot)
 	pdata := &playerData{
-		xuid:                conf.XUID,
-		ui:                  inventory.New(54, nil),
-		inv:                 conf.Inventory,
-		enderChest:          conf.EnderChestInventory,
-		offHand:             conf.OffHand,
-		armour:              conf.Armour,
-		hunger:              newHungerManager(),
-		health:              entity.NewHealthManager(conf.Health, conf.MaxHealth), // 20, 20
-		experience:          entity.NewExperienceManager(),
-		effects:             entity.NewEffectManager(conf.Effects...),
-		locale:              conf.Locale,
-		cooldowns:           make(map[string]time.Time),
-		mc:                  &entity.MovementComputer{Gravity: 0.08, Drag: 0.02, DragBeforeGravity: true},
-		heldSlot:            &slot,
-		gameMode:            conf.GameMode,
-		skin:                conf.Skin,
-		enchantSeed:         conf.EnchantmentSeed,
-		s:                   conf.Session,
-		h:                   NopHandler{},
-		speed:               0.1,
-		flightSpeed:         0.05,
-		verticalFlightSpeed: 1.0,
-		scale:               1.0,
-		airSupplyTicks:      conf.AirSupply,
-		maxAirSupplyTicks:   conf.MaxAirSupply,
-		breathing:           true,
-		nameTag:             conf.Name,
-		fireTicks:           conf.FireTicks,
-		fallDistance:        conf.FallDistance,
-		spawn:               conf.Spawn,
+		xuid:                 conf.XUID,
+		permissionCalculator: conf.PermissionCalculator,
+		ui:                   inventory.New(54, nil),
+		inv:                  conf.Inventory,
+		enderChest:           conf.EnderChestInventory,
+		offHand:              conf.OffHand,
+		armour:               conf.Armour,
+		hunger:               newHungerManager(),
+		health:               entity.NewHealthManager(conf.Health, conf.MaxHealth), // 20, 20
+		experience:           entity.NewExperienceManager(),
+		effects:              entity.NewEffectManager(conf.Effects...),
+		locale:               conf.Locale,
+		cooldowns:            make(map[string]time.Time),
+		mc:                   &entity.MovementComputer{Gravity: 0.08, Drag: 0.02, DragBeforeGravity: true},
+		heldSlot:             &slot,
+		gameMode:             conf.GameMode,
+		skin:                 conf.Skin,
+		enchantSeed:          conf.EnchantmentSeed,
+		s:                    conf.Session,
+		h:                    NopHandler{},
+		speed:                0.1,
+		flightSpeed:          0.05,
+		verticalFlightSpeed:  1.0,
+		scale:                1.0,
+		airSupplyTicks:       conf.AirSupply,
+		maxAirSupplyTicks:    conf.MaxAirSupply,
+		breathing:            true,
+		nameTag:              conf.Name,
+		fireTicks:            conf.FireTicks,
+		fallDistance:         conf.FallDistance,
+		spawn:                conf.Spawn,
 	}
 	pdata.hunger.foodLevel, pdata.hunger.foodTick, pdata.hunger.exhaustionLevel, pdata.hunger.saturationLevel = conf.Food, conf.FoodTick, conf.Exhaustion, conf.Saturation
 	pdata.experience.Add(conf.Experience)
@@ -130,6 +134,9 @@ func fillDefaults(conf Config) Config {
 	}
 	if conf.GameMode == nil {
 		conf.GameMode = world.GameModeSurvival
+	}
+	if conf.PermissionCalculator == nil {
+		conf.PermissionCalculator = permission.NopCalculator{}
 	}
 	return conf
 }

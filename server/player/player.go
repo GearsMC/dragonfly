@@ -23,6 +23,7 @@ import (
 	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/item/enchantment"
 	"github.com/df-mc/dragonfly/server/item/inventory"
+	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/player/bossbar"
 	"github.com/df-mc/dragonfly/server/player/chat"
 	"github.com/df-mc/dragonfly/server/player/dialogue"
@@ -40,11 +41,12 @@ import (
 )
 
 type playerData struct {
-	xuid              string
-	locale            language.Tag
-	nameTag, scoreTag string
-	absorptionHealth  float64
-	scale             float64
+	xuid                 string
+	permissionCalculator permission.Calculator
+	locale               language.Tag
+	nameTag, scoreTag    string
+	absorptionHealth     float64
+	scale                float64
 
 	gameMode world.GameMode
 	skin     skin.Skin
@@ -145,6 +147,29 @@ func (p *Player) UUID() uuid.UUID {
 // Kalıcı oyuncu verisi, isim değişikliklerinde veri kaybı yaşanmaması için XUID ile anahtarlanır.
 func (p *Player) XUID() string {
 	return p.xuid
+}
+
+// PermissionXUID, permission sisteminin kullandığı kalıcı hesap kimliğini döndürür.
+func (p *Player) PermissionXUID() string {
+	return p.xuid
+}
+
+// PermissionName, permission kayıtlarında yalnızca okunabilirlik için kullanılan son bilinen oyuncu adını döndürür.
+func (p *Player) PermissionName() string {
+	return p.Name()
+}
+
+// PermissionState, verilen permission için oyuncunun üç durumlu yetki sonucunu döndürür.
+func (p *Player) PermissionState(name string) permission.State {
+	if p.permissionCalculator == nil {
+		return permission.Undefined
+	}
+	return p.permissionCalculator.CalculatePermission(p, name)
+}
+
+// HasCommandPermission, command sistemi tarafından kullanılan permission kontrolüdür.
+func (p *Player) HasCommandPermission(name string) bool {
+	return p.PermissionState(name).Bool()
 }
 
 // DeviceID returns the device ID of the player. If the Player is not connected to a network session, an empty string is

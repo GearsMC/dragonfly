@@ -12,6 +12,7 @@ import (
 	"github.com/df-mc/dragonfly/server/block"
 	"github.com/df-mc/dragonfly/server/entity"
 	"github.com/df-mc/dragonfly/server/internal/packbuilder"
+	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/player"
 	"github.com/df-mc/dragonfly/server/player/chat"
 	"github.com/df-mc/dragonfly/server/player/playerdb"
@@ -81,6 +82,9 @@ type Config struct {
 	// data. If left as nil, player data will be newly created every time a
 	// player joins the server and no data will be stored.
 	PlayerProvider player.Provider
+	// Permissions, XUID tabanlı operatör kayıtlarını ve permission ağacını yönetir.
+	// Nil bırakılırsa bellek içi boş bir manager kullanılır.
+	Permissions *permission.Manager
 	// WorldProvider is the world.Provider used for storing and loading world
 	// data. If left as nil, world data will be newly created every time and
 	// chunks will always be newly generated when loaded. The world provider
@@ -140,6 +144,9 @@ func (conf Config) New() *Server {
 	}
 	if conf.PlayerProvider == nil {
 		conf.PlayerProvider = player.NopProvider{}
+	}
+	if conf.Permissions == nil {
+		conf.Permissions = permission.NewManager(nil)
 	}
 	if conf.Allower == nil {
 		conf.Allower = allower{}
@@ -250,6 +257,10 @@ type UserConfig struct {
 		// LevelDB player provider if it is enabled.
 		Folder string
 	}
+	Permissions struct {
+		// OperatorsFile, XUID tabanlı operatör kayıtlarının tutulduğu JSON dosyasıdır.
+		OperatorsFile string
+	}
 	Resources struct {
 		// AutoBuildPack is if the server should automatically generate a
 		// resource pack for custom features.
@@ -296,6 +307,11 @@ func (uc UserConfig) Config(log *slog.Logger) (Config, error) {
 			return conf, fmt.Errorf("create player provider: %w", err)
 		}
 	}
+	operatorStore, err := permission.NewFileOperatorStore(uc.Permissions.OperatorsFile)
+	if err != nil {
+		return conf, fmt.Errorf("create permission provider: %w", err)
+	}
+	conf.Permissions = permission.NewManager(operatorStore)
 	conf.Listeners = append(conf.Listeners, uc.listenerFunc)
 	return conf, nil
 }
@@ -343,6 +359,7 @@ func DefaultConfig() UserConfig {
 	c.Players.MaximumChunkRadius = 32
 	c.Players.SaveData = true
 	c.Players.Folder = "players"
+	c.Permissions.OperatorsFile = "operators.json"
 	c.Resources.AutoBuildPack = true
 	c.Resources.Folder = "resources"
 	c.Resources.Required = false
