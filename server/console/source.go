@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/df-mc/dragonfly/server/cmd"
+	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/go-gl/mathgl/mgl64"
 	"github.com/sandertv/gophertunnel/minecraft/text"
 )
@@ -29,10 +30,57 @@ func (s *Source) Position() mgl64.Vec3 {
 	return s.position
 }
 
-// HasCommandPermission grants every command permission to the server console.
-func (*Source) HasCommandPermission(string) bool {
+// PermissionXUID, console için kalıcı oyuncu XUID'si olmadığını belirtir.
+func (*Source) PermissionXUID() string {
+	return ""
+}
+
+// PermissionName, permission loglarında console kaynağını okunabilir şekilde tanımlar.
+func (*Source) PermissionName() string {
+	return "CONSOLE"
+}
+
+// PermissionState, console için her permission'ı Allow kabul eder.
+func (*Source) PermissionState(string) permission.State {
+	return permission.Allow
+}
+
+// HasPermission, console için her permission'a izin verir.
+func (*Source) HasPermission(string) bool {
 	return true
 }
+
+// HasCommandPermission grants every command permission to the server console.
+func (s *Source) HasCommandPermission(permission string) bool {
+	return s.HasPermission(permission)
+}
+
+// PermissionCalculator, console'un sabit izin calculator'ını döndürür.
+func (*Source) PermissionCalculator() permission.Calculator {
+	return permission.ConstantCalculator{State: permission.Allow}
+}
+
+// SetPermissionCalculator, console için işlem yapmaz; console her zaman tam yetkilidir.
+func (*Source) SetPermissionCalculator(permission.Calculator) {}
+
+// RecalculatePermissions, console için işlem yapmaz.
+func (*Source) RecalculatePermissions() {}
+
+// OnPermissionChange, console için işlem yapmaz.
+func (*Source) OnPermissionChange() {}
+
+// RefreshPermissions, console için işlem yapmaz.
+func (*Source) RefreshPermissions() {}
+
+// RefreshCommands, console için işlem yapmaz.
+func (*Source) RefreshCommands() {}
+
+// Compile-time contract checks.
+var (
+	_ permission.Permissible = (*Source)(nil)
+	_ cmd.PermissionSource   = (*Source)(nil)
+	_ cmd.ConsoleSource      = (*Source)(nil)
+)
 
 // SendCommandOutput writes command output to the terminal.
 func (s *Source) SendCommandOutput(output *cmd.Output) {

@@ -10,6 +10,7 @@ import (
 	_ "unsafe"
 
 	"github.com/df-mc/dragonfly/server/block"
+	"github.com/df-mc/dragonfly/server/cmd"
 	"github.com/df-mc/dragonfly/server/entity"
 	"github.com/df-mc/dragonfly/server/internal/packbuilder"
 	"github.com/df-mc/dragonfly/server/permission"
@@ -190,6 +191,7 @@ func (conf Config) New() *Server {
 		px:       make(map[string]*onlinePlayer),
 		world:    &world.World{}, nether: &world.World{}, end: &world.World{},
 	}
+	srv.unregisterCommandListener = cmd.ListenRegistryChanges(srv.refreshAllCommands)
 	for _, lf := range conf.Listeners {
 		l, err := lf(conf)
 		if err != nil {

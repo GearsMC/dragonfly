@@ -1,9 +1,17 @@
 package cmd
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+)
 
 // commands holds a list of registered commands indexed by their name.
 var commands sync.Map
+
+var (
+	commandRegistryListeners  sync.Map
+	commandRegistryListenerID atomic.Uint64
+)
 
 // Register registers a command with its name and all aliases that it has. Any command with the same name or
 // aliases will be overwritten.
@@ -12,6 +20,27 @@ func Register(command Command) {
 	for _, alias := range command.aliases {
 		commands.Store(alias, command)
 	}
+	notifyRegistryChange()
+}
+
+// ListenRegistryChanges, command registry değiştiğinde çağrılacak listener kaydeder.
+// Dönen fonksiyon çağrıldığında listener kaydı kaldırılır.
+func ListenRegistryChanges(listener func()) func() {
+	if listener == nil {
+		return func() {}
+	}
+	id := commandRegistryListenerID.Add(1)
+	commandRegistryListeners.Store(id, listener)
+	return func() {
+		commandRegistryListeners.Delete(id)
+	}
+}
+
+func notifyRegistryChange() {
+	commandRegistryListeners.Range(func(_, value any) bool {
+		value.(func())()
+		return true
+	})
 }
 
 // ByAlias looks up a command by an alias. If found, the command and true are returned. If not, the returned

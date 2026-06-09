@@ -188,6 +188,11 @@ func (p *Player) PermissionState(name string) permission.State {
 
 // HasCommandPermission, command sistemi tarafından kullanılan permission kontrolüdür.
 func (p *Player) HasCommandPermission(name string) bool {
+	return p.HasPermission(name)
+}
+
+// HasPermission, verilen permission için boolean izin sonucunu döndürür.
+func (p *Player) HasPermission(name string) bool {
 	return p.PermissionState(name).Bool()
 }
 
@@ -207,7 +212,7 @@ func (p *Player) SetPermissionCalculator(calculator permission.Calculator) {
 	p.permissionMu.Lock()
 	p.permissionCalculator = calculator
 	p.permissionMu.Unlock()
-	p.RefreshPermissions()
+	p.OnPermissionChange()
 }
 
 // RecalculatePermissions, oyuncunun immutable permission snapshot'ını yeniden üretir.
@@ -222,10 +227,20 @@ func (p *Player) RecalculatePermissions() {
 	p.permissionSnapshot.Store(&snapshot)
 }
 
-// RefreshPermissions, permission snapshot'ını yeniler ve client'a ability/command bilgisinin tekrar gönderilmesini ister.
-func (p *Player) RefreshPermissions() {
+// OnPermissionChange, permission değişiminde snapshot'ı yeniler ve client'a ability/command bilgisinin tekrar gönderilmesini ister.
+func (p *Player) OnPermissionChange() {
 	p.RecalculatePermissions()
 	p.session().RefreshPermissions()
+}
+
+// RefreshPermissions, eski çağrı noktaları için OnPermissionChange ile aynı işi yapar.
+func (p *Player) RefreshPermissions() {
+	p.OnPermissionChange()
+}
+
+// RefreshCommands, oyuncuya gönderilen client command tree bilgisinin yenilenmesini ister.
+func (p *Player) RefreshCommands() {
+	p.session().RefreshCommands()
 }
 
 // DeviceID returns the device ID of the player. If the Player is not connected to a network session, an empty string is

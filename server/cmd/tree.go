@@ -24,13 +24,19 @@ type Tree struct {
 type Node struct {
 	kind        nodeKind
 	name        string
+	description string
 	value       any
 	optional    bool
 	suffix      string
+	enumType    string
+	suggestions SuggestionProvider
 	permissions []string
 	children    []*Node
 	runnable    Runnable
 }
+
+// SuggestionProvider, argument node'u için source'a göre autocomplete seçenekleri üretir.
+type SuggestionProvider func(source Source) []string
 
 // Root, yeni bir command tree root düğümü oluşturur.
 func Root(children ...*Node) *Node {
@@ -78,6 +84,19 @@ func ArgumentSuffix(suffix string) ArgumentOption {
 	}
 }
 
+// ArgumentSuggestions, argument node'u için client autocomplete seçenekleri üretir.
+func ArgumentSuggestions(enumType string, provider SuggestionProvider) ArgumentOption {
+	return func(n *Node) {
+		n.enumType = enumType
+		n.suggestions = provider
+	}
+}
+
+// GreedyText, kalan tüm argümanları tek text değeri olarak tüketen argument node'u oluşturur.
+func GreedyText(name string, opts ...ArgumentOption) *Node {
+	return Argument(name, Varargs(""), opts...)
+}
+
 // NewCommandTree, verilen root çocuklarıyla yeni bir command tree oluşturur.
 func NewCommandTree(children ...*Node) *Tree {
 	return &Tree{root: Root(children...)}
@@ -103,18 +122,32 @@ func (n *Node) Executes(runnable Runnable) *Node {
 	return n
 }
 
+// ExecutesFunc, node'u Context kullanan fonksiyon leaf'i yapar.
+func (n *Node) ExecutesFunc(fn func(ctx *Context)) *Node {
+	return n.Executes(HandlerFunc(fn))
+}
+
 // WithPermissions, node ve altındaki leafler için gerekli permissionları ayarlar.
 func (n *Node) WithPermissions(permissions ...string) *Node {
 	n.permissions = slices.Clone(permissions)
 	return n
 }
 
+// WithDescription, node için okunabilir açıklama metadata'sı ayarlar.
+func (n *Node) WithDescription(description string) *Node {
+	n.description = description
+	return n
+}
+
 func (n *Node) paramInfo() ParamInfo {
 	return ParamInfo{
-		Name:     n.name,
-		Value:    n.value,
-		Optional: n.optional,
-		Suffix:   n.suffix,
+		Name:        n.name,
+		Description: n.description,
+		Value:       n.value,
+		Optional:    n.optional,
+		Suffix:      n.suffix,
+		EnumType:    n.enumType,
+		Suggestions: n.suggestions,
 	}
 }
 
@@ -184,7 +217,7 @@ func (n *Node) walk(params []treeParam, permissions []string, leaves *[]commandL
 		params = append(params, treeParam{ParamInfo: n.paramInfo()})
 	}
 	if n.runnable != nil {
-		value := normaliseRunnable(n.runnable)
+		value := normaliseTreeRunnable(n.runnable)
 		*leaves = append(*leaves, commandLeaf{
 			runnable:    value,
 			params:      cloneTreeParams(params),
@@ -198,6 +231,9 @@ func (n *Node) walk(params []treeParam, permissions []string, leaves *[]commandL
 }
 
 func (l *commandLeaf) bindFields() {
+	if l.runnable.Kind() != reflect.Struct {
+		return
+	}
 	fields := exportedFields(l.runnable)
 	next := 0
 	for i := range l.params {
@@ -225,6 +261,16 @@ func (l *commandLeaf) bindFields() {
 		}
 		next++
 	}
+}
+
+func normaliseTreeRunnable(runnable Runnable) reflect.Value {
+	t := reflect.TypeOf(runnable)
+	if t.Kind() != reflect.Struct && (t.Kind() != reflect.Ptr || t.Elem().Kind() != reflect.Struct) {
+		if _, ok := runnable.(ContextRunnable); ok {
+			return reflect.ValueOf(runnable)
+		}
+	}
+	return normaliseRunnable(runnable)
 }
 
 func normaliseRunnable(runnable Runnable) reflect.Value {

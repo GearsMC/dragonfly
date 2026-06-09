@@ -42,6 +42,8 @@ type Session struct {
 	packets  chan packet.Packet
 	// permissionRefresh, permission değişimlerinde ability ve command tree yenilemesini background döngüsüne bildirir.
 	permissionRefresh chan struct{}
+	// commandRefresh, command registry/metadata değişimlerinde client command tree yenilemesini background döngüsüne bildirir.
+	commandRefresh chan struct{}
 
 	currentScoreboard atomic.Pointer[string]
 	currentLines      atomic.Pointer[[]string]
@@ -185,6 +187,7 @@ func (conf Config) New(conn Conn) *Session {
 		openChunkTransactions:  make([]map[uint64]struct{}, 0, 8),
 		closeBackground:        make(chan struct{}),
 		permissionRefresh:      make(chan struct{}, 1),
+		commandRefresh:         make(chan struct{}, 1),
 		handlers:               map[uint32]packetHandler{},
 		packets:                make(chan packet.Packet, 256),
 		entityRuntimeIDs:       map[*world.EntityHandle]uint64{},
@@ -392,7 +395,7 @@ func (s *Session) handlePackets() {
 func (s *Session) background() {
 	var (
 		r          map[string]map[int]cmd.Runnable
-		enums      map[string]cmd.Enum
+		enums      map[string]commandEnum
 		enumValues map[string][]string
 		softEnums  = make(map[string]struct{})
 		ok         bool
@@ -413,6 +416,12 @@ func (s *Session) background() {
 			s.ent.ExecWorld(func(tx *world.Tx, e world.Entity) {
 				c := e.(Controllable)
 				s.SendAbilities(c)
+				r = s.sendAvailableCommands(c, softEnums)
+				enums, enumValues = s.enums(c)
+			})
+		case <-s.commandRefresh:
+			s.ent.ExecWorld(func(tx *world.Tx, e world.Entity) {
+				c := e.(Controllable)
 				r = s.sendAvailableCommands(c, softEnums)
 				enums, enumValues = s.enums(c)
 			})

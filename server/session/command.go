@@ -187,14 +187,51 @@ func (s *Session) RefreshPermissions() {
 	}
 }
 
+// RefreshCommands, command registry veya command metadata değişiminden sonra client command tree bilgisinin
+// yenilenmesini ister. İşlem background döngüsünde tekilleştirilir.
+func (s *Session) RefreshCommands() {
+	if s == Nop || s.commandRefresh == nil {
+		return
+	}
+	select {
+	case s.commandRefresh <- struct{}{}:
+	default:
+	}
+}
+
 type commandEnum struct {
-	Type    string
-	Options []string
+	Type     string
+	Options  []string
+	Provider cmd.SuggestionProvider
+}
+
+func (e commandEnum) Values(source cmd.Source) []string {
+	if e.Provider != nil {
+		return e.Provider(source)
+	}
+	return e.Options
+}
+
+func paramInfoEnum(i cmd.ParamInfo, source cmd.Source) (commandEnum, bool) {
+	if i.Suggestions != nil {
+		enumType := i.EnumType
+		if enumType == "" {
+			enumType = i.Name
+		}
+		return commandEnum{Type: enumType, Options: i.Suggestions(source), Provider: i.Suggestions}, true
+	}
+	if enum, ok := i.Value.(cmd.Enum); ok {
+		return commandEnum{Type: enum.Type(), Options: enum.Options(source), Provider: enum.Options}, true
+	}
+	return commandEnum{}, false
 }
 
 // valueToParamType finds the command argument type of the value passed and returns it, in addition to creating
 // an enum if applicable.
 func valueToParamType(i cmd.ParamInfo, source cmd.Source) (t uint32, enum commandEnum) {
+	if enum, ok := paramInfoEnum(i, source); ok {
+		return 0, enum
+	}
 	switch i.Value.(type) {
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 		return protocol.CommandArgTypeInt, enum
@@ -217,12 +254,6 @@ func valueToParamType(i cmd.ParamInfo, source cmd.Source) (t uint32, enum comman
 		return 0, commandEnum{
 			Type:    "SubCommand" + i.Name,
 			Options: []string{i.Name},
-		}
-	}
-	if enum, ok := i.Value.(cmd.Enum); ok {
-		return 0, commandEnum{
-			Type:    enum.Type(),
-			Options: enum.Options(source),
 		}
 	}
 	return protocol.CommandArgTypeValue, enum
@@ -269,15 +300,15 @@ func (s *Session) resendCommands(
 }
 
 // enums returns a map of all enums exposed to the Session and records the values those enums currently hold.
-func (s *Session) enums(co Controllable) (map[string]cmd.Enum, map[string][]string) {
-	enums, enumValues := make(map[string]cmd.Enum), make(map[string][]string)
+func (s *Session) enums(co Controllable) (map[string]commandEnum, map[string][]string) {
+	enums, enumValues := make(map[string]commandEnum), make(map[string][]string)
 	for alias, c := range cmd.Commands() {
 		if c.Name() == alias {
 			for _, params := range c.Params(co) {
 				for _, paramInfo := range params {
-					if enum, ok := paramInfo.Value.(cmd.Enum); ok {
-						enums[enum.Type()] = enum
-						enumValues[enum.Type()] = enum.Options(co)
+					if enum, ok := paramInfoEnum(paramInfo, co); ok {
+						enums[enum.Type] = enum
+						enumValues[enum.Type] = enum.Values(co)
 					}
 				}
 			}
@@ -290,7 +321,7 @@ func (s *Session) enums(co Controllable) (map[string]cmd.Enum, map[string][]stri
 // match, and the enum is in softEnums, the enum is resent via UpdateSoftEnum. If the enum is not yet in softEnums,
 // it is added and the full AvailableCommands packet is resent.
 func (s *Session) resendEnums(
-	enums map[string]cmd.Enum,
+	enums map[string]commandEnum,
 	before map[string][]string,
 	softEnums map[string]struct{},
 	r map[string]map[int]cmd.Runnable,
@@ -298,7 +329,7 @@ func (s *Session) resendEnums(
 ) map[string]map[int]cmd.Runnable {
 	for name, enum := range enums {
 		valuesBefore := before[name]
-		values := enum.Options(c)
+		values := enum.Values(c)
 		before[name] = values
 
 		changed := false

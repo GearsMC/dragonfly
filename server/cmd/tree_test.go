@@ -132,6 +132,67 @@ func TestCommandTreeRootPermission(t *testing.T) {
 	}
 }
 
+func TestCommandTreeContextRunnableParsesValues(t *testing.T) {
+	var captured any
+	command := NewWithTree("context", "Context command test.", nil, NewCommandTree(
+		Argument("name", "", ArgumentSuggestions("PlayerName", func(Source) []string {
+			return []string{"lexa5936"}
+		})).ExecutesFunc(func(ctx *Context) {
+			var ok bool
+			captured, ok = ctx.Value("name")
+			if !ok {
+				ctx.Error("name argument yok")
+				return
+			}
+			ctx.Print("context:" + captured.(string))
+		}),
+	))
+	source := &treeSource{permissions: map[string]bool{}}
+
+	params := command.Params(source)
+	if len(params) != 1 || len(params[0]) != 1 {
+		t.Fatalf("context command parametre üretmeli, got %#v", params)
+	}
+	if params[0][0].EnumType != "PlayerName" {
+		t.Fatalf("suggestion enum tipi korunmalı, got %q", params[0][0].EnumType)
+	}
+	if suggestions := params[0][0].Suggestions(source); len(suggestions) != 1 || suggestions[0] != "lexa5936" {
+		t.Fatalf("suggestion provider korunmalı, got %#v", suggestions)
+	}
+
+	command.Execute("lexa5936", source, nil)
+	if captured != "lexa5936" {
+		t.Fatalf("context argument değeri parse edilmeli, got %#v", captured)
+	}
+	if source.output == nil || source.output.MessageCount() != 1 {
+		t.Fatal("context runnable output üretmeli")
+	}
+	if got := source.output.Messages()[0].String(); got != "context:lexa5936" {
+		t.Fatalf("beklenmeyen çıktı: %q", got)
+	}
+}
+
+func TestListenRegistryChanges(t *testing.T) {
+	called := 0
+	unregister := ListenRegistryChanges(func() {
+		called++
+	})
+	Register(NewWithTree("registrylistenertest", "Registry listener test.", nil, NewCommandTree(
+		Root().Executes(treeNoopCommand{}),
+	)))
+	if called != 1 {
+		t.Fatalf("listener bir kez çağrılmalı, got %d", called)
+	}
+
+	unregister()
+	Register(NewWithTree("registrylistenertesttwo", "Registry listener test two.", nil, NewCommandTree(
+		Root().Executes(treeNoopCommand{}),
+	)))
+	if called != 1 {
+		t.Fatalf("unregister sonrası listener çağrılmamalı, got %d", called)
+	}
+}
+
 type treeNoopCommand struct{}
 
 func (treeNoopCommand) Run(Source, *Output, *world.Tx) {}

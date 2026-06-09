@@ -66,6 +66,8 @@ type Server struct {
 	// wg is used to wait for all Listeners to be closed and their respective
 	// goroutines to be finished.
 	wg sync.WaitGroup
+
+	unregisterCommandListener func()
 }
 
 // incoming holds data of a player that is connecting to the server.
@@ -402,6 +404,10 @@ func (srv *Server) Close() error {
 // close stops the server, storing player and world data to disk.
 func (srv *Server) close() {
 	srv.conf.Log.Info("Server closing...")
+	if srv.unregisterCommandListener != nil {
+		srv.unregisterCommandListener()
+		srv.unregisterCommandListener = nil
+	}
 
 	srv.conf.Log.Debug("Disconnecting players...")
 	for p := range srv.Players(nil) {
@@ -701,6 +707,22 @@ func (srv *Server) refreshAllPermissions() {
 		go online.handle.ExecWorld(func(tx *world.Tx, e world.Entity) {
 			if p, ok := e.(*player.Player); ok {
 				p.RefreshPermissions()
+			}
+		})
+	}
+}
+
+func (srv *Server) refreshAllCommands() {
+	srv.pmu.RLock()
+	players := make([]*onlinePlayer, 0, len(srv.p))
+	for _, online := range srv.p {
+		players = append(players, online)
+	}
+	srv.pmu.RUnlock()
+	for _, online := range players {
+		go online.handle.ExecWorld(func(tx *world.Tx, e world.Entity) {
+			if p, ok := e.(*player.Player); ok {
+				p.RefreshCommands()
 			}
 		})
 	}

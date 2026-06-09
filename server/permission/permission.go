@@ -7,6 +7,18 @@ type Subject interface {
 	PermissionName() string
 }
 
+// Permissible, permission hesaplaması yapabilen ve permission değişiminden haberdar edilebilen kaynaktır.
+// Player, console ve ileride eklenecek diğer command source türleri aynı kontratı kullanmalıdır.
+type Permissible interface {
+	Subject
+	PermissionState(name string) State
+	HasPermission(name string) bool
+	PermissionCalculator() Calculator
+	SetPermissionCalculator(calculator Calculator)
+	RecalculatePermissions()
+	OnPermissionChange()
+}
+
 // Calculator, permission kararlarını hesaplayan API'dir.
 type Calculator interface {
 	CalculatePermission(subject Subject, name string) State
@@ -41,4 +53,14 @@ type NopCalculator struct{}
 // CalculatePermission her zaman Undefined döndürür.
 func (NopCalculator) CalculatePermission(Subject, string) State {
 	return Undefined
+}
+
+// ConstantCalculator, her permission sorgusunda aynı sonucu döndüren calculator'dır.
+type ConstantCalculator struct {
+	State State
+}
+
+// CalculatePermission, ConstantCalculator.State değerini döndürür.
+func (c ConstantCalculator) CalculatePermission(Subject, string) State {
+	return c.State
 }

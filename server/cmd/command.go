@@ -209,10 +209,13 @@ func (cmd Command) Execute(args string, source Source, tx *world.Tx) {
 // ParamInfo holds the information of a parameter in a Runnable. Information of a parameter may be obtained
 // by calling Command.Params().
 type ParamInfo struct {
-	Name     string
-	Value    any
-	Optional bool
-	Suffix   string
+	Name        string
+	Description string
+	Value       any
+	Optional    bool
+	Suffix      string
+	EnumType    string
+	Suggestions SuggestionProvider
 }
 
 // Params returns a list of all parameters of the runnables. No assumptions should be done on the values that
@@ -271,11 +274,15 @@ func (cmd Command) executeLeaf(leaf commandLeaf, args string, source Source, out
 		argFrags = record
 	}
 
-	cp := reflect.New(leaf.runnable.Type())
-	cp.Elem().Set(leaf.runnable)
-	signature := cp.Elem()
+	signature := leaf.runnable
+	if leaf.runnable.Kind() == reflect.Struct {
+		cp := reflect.New(leaf.runnable.Type())
+		cp.Elem().Set(leaf.runnable)
+		signature = cp.Elem()
+	}
 	parser := parser{}
 	arguments := &Line{args: argFrags, src: source, seen: []string{"/" + cmd.name}, cmd: cmd}
+	contextValues := map[string]any{}
 
 	for _, param := range leaf.params {
 		if param.literal {
@@ -283,6 +290,19 @@ func (cmd Command) executeLeaf(leaf commandLeaf, args string, source Source, out
 			val := reflect.New(reflect.TypeOf(SubCommand{})).Elem()
 			if err, _ := parser.parseArgument(arguments, val, false, param.Name, source, tx); err != nil {
 				return arguments, err
+			}
+			continue
+		}
+
+		if signature.Kind() != reflect.Struct {
+			parser.currentField = param.Name
+			val := reflect.New(reflect.TypeOf(param.Value)).Elem()
+			err, success := parser.parseArgument(arguments, val, param.Optional, param.Name, source, tx)
+			if err != nil {
+				return arguments, err
+			}
+			if success {
+				contextValues[param.Name] = val.Interface()
 			}
 			continue
 		}
@@ -307,7 +327,20 @@ func (cmd Command) executeLeaf(leaf commandLeaf, args string, source Source, out
 		return arguments, arguments.UsageError()
 	}
 
-	signature.Interface().(Runnable).Run(source, output, tx)
+	runnable := signature.Interface().(Runnable)
+	if contextRunnable, ok := runnable.(ContextRunnable); ok {
+		contextRunnable.RunContext(&Context{
+			Command:     cmd,
+			Source:      source,
+			Output:      output,
+			Tx:          tx,
+			Args:        ArgumentPreview(args),
+			Values:      contextValues,
+			Permissions: slices.Clone(leaf.permissions),
+		})
+		return arguments, nil
+	}
+	runnable.Run(source, output, tx)
 	return arguments, nil
 }
 
