@@ -7,6 +7,7 @@ import (
 
 	"github.com/df-mc/dragonfly/server/cmd"
 	"github.com/df-mc/dragonfly/server/performance"
+	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/sandertv/gophertunnel/minecraft/text"
 )
@@ -16,8 +17,12 @@ var registerPerformanceOnce sync.Once
 // RegisterPerformance registers built-in performance inspection commands.
 func RegisterPerformance() {
 	registerPerformanceOnce.Do(func() {
-		cmd.Register(cmd.New("tps", "Displays TPS and timing metrics for the current world.", nil, tpsCommand{}))
-		cmd.Register(cmd.New("status", "Displays server runtime and world performance status.", nil, statusCommand{}))
+		cmd.Register(cmd.NewWithTree("tps", "Bulunulan dunyanin TPS ve zamanlama olcumlerini gosterir.", nil, cmd.NewCommandTree(
+			cmd.Root().WithPermissions(permission.CommandTPS).Executes(tpsCommand{}),
+		)))
+		cmd.Register(cmd.NewWithTree("status", "Sunucu calisma durumu ve dunya performansini gosterir.", nil, cmd.NewCommandTree(
+			cmd.Root().WithPermissions(permission.CommandStatus).Executes(statusCommand{}),
+		)))
 	})
 }
 

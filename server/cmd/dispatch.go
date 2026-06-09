@@ -25,7 +25,7 @@ func Dispatch(commandLine string, source Source, tx *world.Tx, before BeforeExec
 	}
 
 	command, ok := ByAlias(name)
-	if !ok || !command.CanRun(source) {
+	if !ok || len(command.Runnables(source)) == 0 {
 		output := &Output{}
 		output.Errort(MessageUnknown, name)
 		source.SendCommandOutput(output)

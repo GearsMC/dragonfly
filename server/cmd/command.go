@@ -52,6 +52,8 @@ type Command struct {
 	usage       string
 	aliases     []string
 	permissions []string
+	tree        *Tree
+	leaves      []commandLeaf
 }
 
 // New returns a new Command using the name and description passed. Command
@@ -61,36 +63,42 @@ type Command struct {
 // called after all fields have their values from the parsed command set. If r
 // is not a struct or a pointer to a struct, New panics.
 func New(name, description string, aliases []string, r ...Runnable) Command {
+	runnableValues := make([]reflect.Value, len(r))
+	for i, runnable := range r {
+		runnableValues[i] = normaliseRunnable(runnable)
+	}
+	return newCommand(name, description, aliases, treeFromRunnables(runnableValues), runnableValues)
+}
+
+// NewWithTree, açık command tree tanımıyla yeni bir Command oluşturur.
+func NewWithTree(name, description string, aliases []string, tree *Tree) Command {
+	return newCommand(name, description, aliases, tree, nil)
+}
+
+func newCommand(name, description string, aliases []string, tree *Tree, runnableValues []reflect.Value) Command {
 	name = strings.ToLower(name)
+	aliases = slices.Clone(aliases)
 	for i, alias := range aliases {
 		aliases[i] = strings.ToLower(alias)
 	}
-
-	usages := make([]string, len(r))
-	runnableValues := make([]reflect.Value, len(r))
-
 	if len(aliases) > 0 && slices.Index(aliases, name) == -1 {
 		aliases = append(aliases, name)
 	}
 
-	for i, runnable := range r {
-		t := reflect.TypeOf(runnable)
-		if t.Kind() != reflect.Struct && (t.Kind() != reflect.Ptr || t.Elem().Kind() != reflect.Struct) {
-			panic(fmt.Sprintf("Runnable r must be struct or pointer to struct, but got %v", t.Kind()))
-		}
-		original := reflect.ValueOf(runnable)
-		if t.Kind() == reflect.Ptr {
-			original = original.Elem()
-		}
-
-		cp := reflect.New(original.Type()).Elem()
-		if err := verifySignature(cp); err != nil {
-			panic(err.Error())
-		}
-		runnableValues[i], usages[i] = original, parseUsage(name, cp)
+	if tree == nil {
+		tree = NewCommandTree()
 	}
+	leaves := tree.leaves()
 
-	return Command{name: name, description: description, aliases: aliases, v: runnableValues, usage: strings.Join(usages, "\n")}
+	return Command{
+		name:        name,
+		description: description,
+		aliases:     aliases,
+		v:           runnableValues,
+		tree:        tree,
+		leaves:      leaves,
+		usage:       usageFromLeaves(name, leaves),
+	}
 }
 
 // Name returns the name of the command. The name is guaranteed to be lowercase and will never have spaces in
@@ -168,10 +176,8 @@ func (cmd Command) Execute(args string, source Source, tx *world.Tx) {
 	var leastErroneous error
 	var leastArgsLeft *Line
 
-	for _, v := range cmd.v {
-		cp := reflect.New(v.Type())
-		cp.Elem().Set(v)
-		line, err := cmd.executeRunnable(cp, args, source, output, tx)
+	for _, leaf := range cmd.leaves {
+		line, err := cmd.executeLeaf(leaf, args, source, output, tx)
 		if err == nil {
 			// Command was executed successfully: We won't execute any of the other Runnable values passed, as
 			// we've already found an overload that works.
@@ -215,33 +221,16 @@ func (cmd Command) Params(src Source) [][]ParamInfo {
 	if !cmd.CanRun(src) {
 		return nil
 	}
-	params := make([][]ParamInfo, 0, len(cmd.v))
-	for _, runnable := range cmd.v {
-		if allower, ok := runnable.Interface().(Allower); ok && !allower.Allow(src) {
-			// This source cannot execute this runnable.
+	params := make([][]ParamInfo, 0, len(cmd.leaves))
+	for _, leaf := range cmd.leaves {
+		if !cmd.leafCanRun(leaf, src) {
 			continue
 		}
-
-		// If the runnable can describe its own parameters, prefer that over reflection.
-		if d, ok := runnable.Interface().(ParamDescriber); ok {
+		if d, ok := leaf.runnable.Interface().(ParamDescriber); ok {
 			params = append(params, d.DescribeParams(src))
 			continue
 		}
-
-		elem := reflect.New(runnable.Type()).Elem()
-		elem.Set(runnable)
-
-		var fields []ParamInfo
-		for _, t := range exportedFields(elem) {
-			field := elem.FieldByName(t.Name)
-			fields = append(fields, ParamInfo{
-				Name:     name(t),
-				Value:    unwrap(field).Interface(),
-				Optional: optional(field),
-				Suffix:   suffix(t),
-			})
-		}
-		params = append(params, fields)
+		params = append(params, slices.Clone(leaf.usageParams))
 	}
 	return params
 }
@@ -251,11 +240,10 @@ func (cmd Command) Runnables(src Source) map[int]Runnable {
 	if !cmd.CanRun(src) {
 		return nil
 	}
-	m := make(map[int]Runnable, len(cmd.v))
-	for i, runnable := range cmd.v {
-		v := runnable.Interface().(Runnable)
-		if allower, ok := v.(Allower); !ok || allower.Allow(src) {
-			m[i] = v
+	m := make(map[int]Runnable, len(cmd.leaves))
+	for _, leaf := range cmd.leaves {
+		if cmd.leafCanRun(leaf, src) {
+			m[leaf.id] = leaf.runnable.Interface().(Runnable)
 		}
 	}
 	return m
@@ -267,11 +255,8 @@ func (cmd Command) String() string {
 	return cmd.usage
 }
 
-// executeRunnable executes a Runnable v, by parsing the args passed using the source and output obtained. If
-// parsing was not successful or the Runnable could not be run by this source, an error is returned, and the
-// leftover command line.
-func (cmd Command) executeRunnable(v reflect.Value, args string, source Source, output *Output, tx *world.Tx) (*Line, error) {
-	if a, ok := v.Interface().(Allower); ok && !a.Allow(source) {
+func (cmd Command) executeLeaf(leaf commandLeaf, args string, source Source, output *Output, tx *world.Tx) (*Line, error) {
+	if !cmd.leafCanRun(leaf, source) {
 		return nil, MessageUnknown.F(cmd.name)
 	}
 
@@ -281,33 +266,37 @@ func (cmd Command) executeRunnable(v reflect.Value, args string, source Source, 
 		r.Comma, r.LazyQuotes = ' ', true
 		record, err := r.Read()
 		if err != nil {
-			// When LazyQuotes is enabled, this really never appears to return
-			// an error when we read only one line. Just in case it does though,
-			// we return the command usage.
 			return nil, MessageUsage.F(cmd.Usage())
 		}
 		argFrags = record
 	}
+
+	cp := reflect.New(leaf.runnable.Type())
+	cp.Elem().Set(leaf.runnable)
+	signature := cp.Elem()
 	parser := parser{}
 	arguments := &Line{args: argFrags, src: source, seen: []string{"/" + cmd.name}, cmd: cmd}
 
-	// We iterate over all the fields of the struct: Each of the fields will have an argument parsed to
-	// produce its value.
-	signature := v.Elem()
-	for _, t := range exportedFields(signature) {
-		field := signature.FieldByName(t.Name)
-		parser.currentField = t.Name
-		opt := optional(field)
+	for _, param := range leaf.params {
+		if param.literal {
+			parser.currentField = param.Name
+			val := reflect.New(reflect.TypeOf(SubCommand{})).Elem()
+			if err, _ := parser.parseArgument(arguments, val, false, param.Name, source, tx); err != nil {
+				return arguments, err
+			}
+			continue
+		}
 
+		field := signature.FieldByName(param.fieldName)
+		parser.currentField = param.fieldName
+		opt := optional(field)
 		val := field
 		if opt {
 			val = reflect.New(field.Field(0).Type()).Elem()
 		}
 
-		err, success := parser.parseArgument(arguments, val, opt, name(t), source, tx)
+		err, success := parser.parseArgument(arguments, val, opt, param.Name, source, tx)
 		if err != nil {
-			// Parsing was not successful, we return immediately as we don't
-			// need to call the Runnable.
 			return arguments, err
 		}
 		if success && opt {
@@ -318,34 +307,49 @@ func (cmd Command) executeRunnable(v reflect.Value, args string, source Source, 
 		return arguments, arguments.UsageError()
 	}
 
-	v.Interface().(Runnable).Run(source, output, tx)
+	signature.Interface().(Runnable).Run(source, output, tx)
 	return arguments, nil
 }
 
-// parseUsage parses the usage of a command found in value v using the name passed. It accounts for optional
-// parameters and converts types to a more friendly representation.
-func parseUsage(commandName string, command reflect.Value) string {
-	parts := make([]string, 0, command.NumField()+1)
-	parts = append(parts, "/"+commandName)
-
-	for _, t := range exportedFields(command) {
-		field := command.FieldByName(t.Name)
-
-		typeName := typeNameOf(field.Interface(), name(t))
-		if _, ok := field.Interface().(optionalT); ok {
-			typeName = typeNameOf(reflect.New(field.Field(0).Type()).Elem().Interface(), name(t))
+func (cmd Command) leafCanRun(leaf commandLeaf, src Source) bool {
+	if len(leaf.permissions) > 0 {
+		permissionSource, ok := src.(PermissionSource)
+		if !ok {
+			return false
 		}
-		if _, ok := field.Interface().(SubCommand); ok {
-			parts = append(parts, typeName)
-			continue
+		for _, permission := range leaf.permissions {
+			if !permissionSource.HasCommandPermission(permission) {
+				return false
+			}
 		}
-		if optional(field) {
-			parts = append(parts, "["+name(t)+": "+typeName+"]"+suffix(t))
-			continue
-		}
-		parts = append(parts, "<"+name(t)+": "+typeName+">"+suffix(t))
 	}
-	return strings.Join(parts, " ")
+	v := leaf.runnable.Interface().(Runnable)
+	if allower, ok := v.(Allower); ok {
+		return allower.Allow(src)
+	}
+	return true
+}
+
+func usageFromLeaves(commandName string, leaves []commandLeaf) string {
+	usages := make([]string, 0, len(leaves))
+	for _, leaf := range leaves {
+		parts := make([]string, 0, len(leaf.usageParams)+1)
+		parts = append(parts, "/"+commandName)
+		for _, param := range leaf.usageParams {
+			typeName := typeNameOf(param.Value, param.Name)
+			if _, ok := param.Value.(SubCommand); ok {
+				parts = append(parts, typeName)
+				continue
+			}
+			if param.Optional {
+				parts = append(parts, "["+param.Name+": "+typeName+"]"+param.Suffix)
+				continue
+			}
+			parts = append(parts, "<"+param.Name+": "+typeName+">"+param.Suffix)
+		}
+		usages = append(usages, strings.Join(parts, " "))
+	}
+	return strings.Join(usages, "\n")
 }
 
 // verifySignature verifies the passed struct pointer value signature to ensure it is a valid command,

@@ -1,11 +1,11 @@
-// Package cmd implements a Minecraft specific command system, which may be used simply by 'plugging' it in
-// and sending commands registered in an AvailableCommandsPacket.
+// Package cmd, Minecraft komutlarını root/literal/argument node'larından oluşan bir command tree ile yönetir.
+// Node seviyesinde permission verilebilir; client'a gönderilen AvailableCommands paketi ve runtime execution aynı
+// tree leaf'lerinden beslendiği için görünen komut ile çalıştırılabilen komut aynı permission kararını kullanır.
 //
-// The cmd package handles commands in a specific way: It requires a struct to be passed to the cmd.New()
-// function, which implements the Runnable interface. For every exported field in the struct, executing the
-// command will result in the parsing of the arguments using the types of the fields of the struct, in the
-// order that they appear in. Fields unexported or ignored using the `cmd:"-"` struct tag (see below) have
-// their values copied but retained.
+// Yeni komutlar cmd.NewWithTree(), cmd.Root(), cmd.Literal() ve cmd.Argument() ile açık tree olarak tanımlanabilir.
+// cmd.New() ise struct tabanlı eski tanımı otomatik olarak aynı command tree modeline çevirir. Runnable struct içindeki
+// exported alanlar sırayla argument olarak parse edilir; SubCommand alanları literal node'a çevrilir. Export edilmeyen
+// veya `cmd:"-"` tag'iyle yok sayılan alanlar parametre olarak parse edilmez.
 //
 // A Runnable may have exported fields only of the following types:
 // int8, int16, int32, int64, int, uint8, uint16, uint32, uint64, uint,
