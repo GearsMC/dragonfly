@@ -1,6 +1,7 @@
 package playerdb
 
 import (
+	"fmt"
 	"github.com/df-mc/dragonfly/server/block/cube"
 	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/item/inventory"
@@ -11,8 +12,18 @@ import (
 	"time"
 )
 
-func (p *Provider) fromJson(d jsonData, lookupWorld func(world.Dimension) *world.World) (player.Config, *world.World) {
-	dim, _ := world.DimensionByID(int(d.Dimension))
+func (p *Provider) fromJson(d jsonData, lookupWorld player.WorldLookup) (player.Config, *world.World, error) {
+	dim, ok := world.DimensionByID(int(d.Dimension))
+	if !ok {
+		return player.Config{}, nil, fmt.Errorf("bilinmeyen oyuncu dimension kimliği: %d", d.Dimension)
+	}
+	w := lookupWorld(d.World, dim)
+	if w == nil {
+		if d.World == "" {
+			return player.Config{}, nil, fmt.Errorf("eski oyuncu dünyası dimension %d içinde çözümlenemedi", d.Dimension)
+		}
+		return player.Config{}, nil, fmt.Errorf("oyuncu dünyası %q dimension %d içinde çözümlenemedi", d.World, d.Dimension)
+	}
 	mode, _ := world.GameModeByID(int(d.GameMode))
 	conf := player.Config{
 		UUID:                uuid.MustParse(d.UUID),
@@ -54,7 +65,7 @@ func (p *Provider) fromJson(d jsonData, lookupWorld func(world.Dimension) *world
 	for slot, stack := range echest {
 		_ = conf.EnderChestInventory.SetItem(slot, stack)
 	}
-	return conf, lookupWorld(dim)
+	return conf, w, nil
 }
 
 func (p *Provider) toJson(d player.Config, w *world.World) jsonData {
@@ -93,6 +104,7 @@ func (p *Provider) toJson(d player.Config, w *world.World) jsonData {
 			MainHandSlot: uint32(d.HeldSlot),
 		}),
 		EnderChestInventory: encodeItems(d.EnderChestInventory.Slots()),
+		World:               w.Name(),
 		Dimension:           uint8(dim),
 	}
 }
@@ -116,6 +128,7 @@ type jsonData struct {
 	Effects                          []jsonEffect
 	FireTicks                        int64
 	FallDistance                     float64
+	World                            string
 	Dimension                        uint8
 }
 

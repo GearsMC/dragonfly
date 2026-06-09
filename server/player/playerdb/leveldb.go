@@ -40,7 +40,7 @@ func (p *Provider) Save(id uuid.UUID, d player.Config, w *world.World) error {
 }
 
 // Load ...
-func (p *Provider) Load(id uuid.UUID, world func(world.Dimension) *world.World) (player.Config, *world.World, error) {
+func (p *Provider) Load(id uuid.UUID, lookupWorld player.WorldLookup) (player.Config, *world.World, error) {
 	b, err := p.db.Get(id[:], nil)
 	if err != nil {
 		return player.Config{}, nil, err
@@ -50,9 +50,7 @@ func (p *Provider) Load(id uuid.UUID, world func(world.Dimension) *world.World) 
 	if err != nil {
 		return player.Config{}, nil, err
 	}
-	conf, w := p.fromJson(d, world)
-
-	return conf, w, nil
+	return p.fromJson(d, lookupWorld)
 }
 
 // Close ...

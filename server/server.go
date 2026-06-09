@@ -432,8 +432,8 @@ func (srv *Server) finaliseConn(ctx context.Context, conn session.Conn, l Listen
 	id := uuid.MustParse(conn.IdentityData().Identity)
 	data := srv.defaultGameData()
 
-	d, w, err := srv.conf.PlayerProvider.Load(id, srv.dimension)
-	if err != nil {
+	d, w, err := srv.conf.PlayerProvider.Load(id, srv.lookupWorld)
+	if err != nil || w == nil {
 		w = srv.world
 		d.Position = w.Spawn().Vec3Centre()
 		d.GameMode = w.DefaultGameMode()
@@ -495,16 +495,15 @@ func (srv *Server) defaultGameData() minecraft.GameData {
 	}
 }
 
-// dimension returns a world by a dimension passed.
-func (srv *Server) dimension(dimension world.Dimension) *world.World {
-	switch dimension {
-	default:
-		return srv.world
-	case world.Nether:
-		return srv.nether
-	case world.End:
-		return srv.end
+// lookupWorld, kayıtlı dünya adı ve dimension bilgisiyle eşleşen sunucu dünyasını döndürür.
+// Adı bulunmayan eski kayıtlar yalnızca dimension bilgisiyle çözümlenir.
+func (srv *Server) lookupWorld(name string, dimension world.Dimension) *world.World {
+	for _, w := range [...]*world.World{srv.world, srv.nether, srv.end} {
+		if w.Dimension() == dimension && (name == "" || w.Name() == name) {
+			return w
+		}
 	}
+	return nil
 }
 
 // handleSessionClose handles the closing of a session. It removes the player
