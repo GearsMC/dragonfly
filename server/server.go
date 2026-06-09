@@ -275,6 +275,62 @@ func (srv *Server) PlayerByXUID(xuid string) (*world.EntityHandle, bool) {
 	return p.handle, true
 }
 
+// ResolveIdentityByName, çevrimiçi oyuncularda veya kalıcı kimlik indeksinde son bilinen isimden XUID kimliğini çözer.
+// Kalıcı veri anahtarı olarak yalnızca XUID kullanılmalıdır; isim bu metotta sadece kullanıcı dostu arama anahtarıdır.
+func (srv *Server) ResolveIdentityByName(name string) (player.Identity, bool, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return player.Identity{}, false, nil
+	}
+
+	srv.pmu.RLock()
+	for _, p := range srv.p {
+		if strings.EqualFold(p.name, name) {
+			identity := player.Identity{
+				XUID:          p.xuid,
+				UUID:          p.handle.UUID(),
+				LastKnownName: p.name,
+				LastSeen:      time.Now(),
+			}
+			srv.pmu.RUnlock()
+			return identity, true, nil
+		}
+	}
+	srv.pmu.RUnlock()
+
+	provider, ok := srv.conf.PlayerProvider.(player.IdentityProvider)
+	if !ok {
+		return player.Identity{}, false, nil
+	}
+	return provider.LookupIdentityByName(name)
+}
+
+// ResolveIdentityByXUID, XUID için çevrimiçi veya kalıcı indeks bilgisini döndürür.
+func (srv *Server) ResolveIdentityByXUID(xuid string) (player.Identity, bool, error) {
+	if xuid == "" {
+		return player.Identity{}, false, nil
+	}
+
+	srv.pmu.RLock()
+	if p, ok := srv.px[xuid]; ok {
+		identity := player.Identity{
+			XUID:          p.xuid,
+			UUID:          p.handle.UUID(),
+			LastKnownName: p.name,
+			LastSeen:      time.Now(),
+		}
+		srv.pmu.RUnlock()
+		return identity, true, nil
+	}
+	srv.pmu.RUnlock()
+
+	provider, ok := srv.conf.PlayerProvider.(player.IdentityProvider)
+	if !ok {
+		return player.Identity{}, false, nil
+	}
+	return provider.LookupIdentityByXUID(xuid)
+}
+
 // CloseOnProgramEnd closes the server right before the program ends, so that
 // all data of the server are saved properly.
 func (srv *Server) CloseOnProgramEnd() {
@@ -468,6 +524,12 @@ func (srv *Server) finaliseConn(ctx context.Context, conn session.Conn, l Listen
 		srv.conf.Log.Debug("spawn failed: already logged in UUID", "raddr", conn.RemoteAddr())
 		return
 	}
+	srv.rememberIdentity(player.Identity{
+		XUID:          xuid,
+		UUID:          id,
+		LastKnownName: identityData.DisplayName,
+		LastSeen:      time.Now(),
+	})
 	_ = conn.WritePacket(&packet.ItemRegistry{Items: srv.customItems})
 	srv.incoming <- srv.createPlayer(id, conn, d, w)
 }
@@ -536,10 +598,26 @@ func (srv *Server) handleSessionClose(tx *world.Tx, c session.Controllable) {
 		return
 	}
 
+	srv.rememberIdentity(player.Identity{
+		XUID:          c.XUID(),
+		UUID:          c.UUID(),
+		LastKnownName: c.Name(),
+		LastSeen:      time.Now(),
+	})
 	if err := srv.conf.PlayerProvider.Save(c.XUID(), c.(*player.Player).Data(), tx.World()); err != nil {
 		srv.conf.Log.Error("Save player data: " + err.Error())
 	}
 	srv.pwg.Done()
+}
+
+func (srv *Server) rememberIdentity(identity player.Identity) {
+	provider, ok := srv.conf.PlayerProvider.(player.IdentityProvider)
+	if !ok {
+		return
+	}
+	if err := provider.RememberIdentity(identity); err != nil {
+		srv.conf.Log.Warn("oyuncu kimlik indeksi güncellenemedi", "xuid", identity.XUID, "name", identity.LastKnownName, "err", err)
+	}
 }
 
 // createPlayer creates a new player instance using the UUID and connection

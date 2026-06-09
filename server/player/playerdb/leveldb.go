@@ -17,6 +17,8 @@ type Provider struct {
 	db *leveldb.DB
 }
 
+var _ player.IdentityProvider = (*Provider)(nil)
+
 // NewProvider creates a new player data provider that saves and loads data using
 // a LevelDB database.
 func NewProvider(path string) (*Provider, error) {
