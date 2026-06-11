@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-gl/mathgl/mgl64"
 	"github.com/df-mc/dragonfly/server/world"
+	"github.com/go-gl/mathgl/mgl64"
 )
 
 // GameMode, Minecraft oyun modları temsil eder.
@@ -129,8 +129,8 @@ type CoordinateMode uint8
 
 const (
 	CoordinateAbsolute CoordinateMode = iota // Mutlak konum: 100 64 200
-	CoordinateRelative                        // Göreceli konum: ~5 ~-2 ~10
-	CoordinateCaret                           // Caret (ok) konumu: ^1 ^0 ^-2
+	CoordinateRelative                       // Göreceli konum: ~5 ~-2 ~10
+	CoordinateCaret                          // Caret (ok) konumu: ^1 ^0 ^-2
 )
 
 // Coordinate, X/Y/Z koordinatını temsil eder (kayan nokta)

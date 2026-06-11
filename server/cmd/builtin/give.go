@@ -15,10 +15,11 @@ import (
 //
 // Kullanım: /give <oyuncu> <eşya> [miktar]
 // Örnekler:
-//   /give @p diamond 64        - en yakın oyuncuya 64 elmas
-//   /give Steve apple 10       - Steve'e 10 elma
-//   /give @a iron_ingot 1      - tüm oyunculara 1 demir
-//   /give @s stick             - kendine 1 çubuk
+//
+//	/give @p diamond 64        - en yakın oyuncuya 64 elmas
+//	/give Steve apple 10       - Steve'e 10 elma
+//	/give @a iron_ingot 1      - tüm oyunculara 1 demir
+//	/give @s stick             - kendine 1 çubuk
 type GiveCommand struct {
 	Target []cmd.Target
 	Item   string

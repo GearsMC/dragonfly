@@ -11,9 +11,10 @@ import (
 //
 // Kullanım: /difficulty <zorluk>
 // Örnekler:
-//   /difficulty hard      - zorluğu hard yap
-//   /difficulty peaceful  - zorluğu peaceful yap
-//   /diff e               - alias ile easy
+//
+//	/difficulty hard      - zorluğu hard yap
+//	/difficulty peaceful  - zorluğu peaceful yap
+//	/diff e               - alias ile easy
 type DifficultyCommand struct {
 	Difficulty string
 }

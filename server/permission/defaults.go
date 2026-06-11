@@ -1,14 +1,14 @@
 package permission
 
 const (
-	GroupUser      = "dfmc.group.user"
-	GroupOperator  = "dfmc.group.operator"
-	GroupConsole   = "dfmc.group.console"
-	
+	GroupUser     = "dfmc.group.user"
+	GroupOperator = "dfmc.group.operator"
+	GroupConsole  = "dfmc.group.console"
+
 	// Rol şablonları - oyunculara bu roller atanabilir
-	RoleBuilder    = "dfmc.role.builder"     // Harita yapımcısı
-	RoleModerator  = "dfmc.role.moderator"   // Moderatör
-	RoleHelper     = "dfmc.role.helper"      // Yardımcı
+	RoleBuilder   = "dfmc.role.builder"   // Harita yapımcısı
+	RoleModerator = "dfmc.role.moderator" // Moderatör
+	RoleHelper    = "dfmc.role.helper"    // Yardımcı
 
 	CommandHelp             = "dfmc.command.help"
 	CommandList             = "dfmc.command.list"
@@ -107,33 +107,33 @@ func RegisterDefaults(registry *Registry) {
 	// Rol şablonları - Bu roller oyunculara opsiyonel olarak atanabilir
 	// 1. BUILDER ROLE - Harita yapımcıları için
 	registry.Register(New(RoleBuilder, "Harita yapımcısı rolü").WithChildren(map[string]bool{
-		CommandSetWorldSpawn:   true,
-		CommandSpawnPoint:      true,
-		CommandGameRule:        true,
-		CommandExecute:         true,
-		CommandSummon:          true,
-		AbilityFlySurvival:     true,
-		BlockUseCommandBlock:   true,
+		CommandSetWorldSpawn: true,
+		CommandSpawnPoint:    true,
+		CommandGameRule:      true,
+		CommandExecute:       true,
+		CommandSummon:        true,
+		AbilityFlySurvival:   true,
+		BlockUseCommandBlock: true,
 	}))
 
 	// 2. MODERATOR ROLE - Moderatörler için
 	registry.Register(New(RoleModerator, "Moderatör rolü").WithChildren(map[string]bool{
-		CommandKick:      true,
-		CommandBan:       true,
-		CommandBanIP:     true,
-		CommandPardon:    true,
-		CommandPardonIP:  true,
-		AbilityChat:      true,
+		CommandKick:     true,
+		CommandBan:      true,
+		CommandBanIP:    true,
+		CommandPardon:   true,
+		CommandPardonIP: true,
+		AbilityChat:     true,
 	}))
 
 	// 3. HELPER ROLE - Yardımcılar için
 	registry.Register(New(RoleHelper, "Yardımcı rolü").WithChildren(map[string]bool{
-		CommandHelp:          true,
-		CommandList:          true,
-		CommandSay:           true,
-		CommandSpawnPoint:    true,
-		CommandTeleport:      true,
-		AbilityChat:          true,
+		CommandHelp:       true,
+		CommandList:       true,
+		CommandSay:        true,
+		CommandSpawnPoint: true,
+		CommandTeleport:   true,
+		AbilityChat:       true,
 	}))
 
 	for _, permission := range []Permission{

@@ -12,10 +12,11 @@ import (
 //
 // Kullanım: /gamemode <mod> [oyuncular]
 // Örnekler:
-//   /gamemode creative          - kendi oyun modunu değiştir
-//   /gamemode survival @a       - tüm oyuncuları survival yap
-//   /gamemode adventure Steve   - Steve'i adventure yap
-//   /gm c                       - alias ile creative
+//
+//	/gamemode creative          - kendi oyun modunu değiştir
+//	/gamemode survival @a       - tüm oyuncuları survival yap
+//	/gamemode adventure Steve   - Steve'i adventure yap
+//	/gm c                       - alias ile creative
 type GameModeCommand struct {
 	Mode   string
 	Target cmd.Optional[[]cmd.Target]

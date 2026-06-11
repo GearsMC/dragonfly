@@ -33,10 +33,10 @@ const (
 // içerir ve bunlar komutu çalıştıran kaynağa gönderilir.
 // YENİ: Broadcast kapsamı ve gerekli izinler desteklenir.
 type Output struct {
-	errors                  []error
-	messages                []fmt.Stringer
-	broadcastScope          BroadcastScope // Çıktının nereye yayınlanması gerektiği
-	requiredPermissions     []string       // BroadcastPermitted olduğunda gerekli izinler
+	errors              []error
+	messages            []fmt.Stringer
+	broadcastScope      BroadcastScope // Çıktının nereye yayınlanması gerektiği
+	requiredPermissions []string       // BroadcastPermitted olduğunda gerekli izinler
 }
 
 // Errorf, hata mesajını formatlar ve komut çıktısına ekler.
