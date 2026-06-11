@@ -47,10 +47,21 @@ func (d DifficultyCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx)
 		SetRequiredPermissions(permission.CommandDifficulty)
 }
 
+// difficultySuggestions, /difficulty komutunda client autocomplete'si için
+// zorluk seviyesi seçeneklerini döndürür.
+func difficultySuggestions(_ cmd.Source) []string {
+	return []string{
+		"0", "peaceful", "p",
+		"1", "easy", "e",
+		"2", "normal", "n",
+		"3", "hard", "h",
+	}
+}
+
 // init, difficulty komutunu kaydeder.
 func init() {
 	tree := cmd.NewCommandTree(
-		cmd.Argument("zorluk", "").
+		cmd.Argument("zorluk", "", cmd.ArgumentSuggestions("Difficulty", difficultySuggestions)).
 			Executes(&DifficultyCommand{}),
 	)
 

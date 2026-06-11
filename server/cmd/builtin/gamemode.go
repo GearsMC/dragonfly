@@ -70,10 +70,21 @@ func (g GameModeCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 		SetRequiredPermissions(permission.CommandGameMode)
 }
 
+// gamemodeSuggestions, /gamemode komutunda client autocomplete'si için
+// oyun modu seçeneklerini döndürür.
+func gamemodeSuggestions(_ cmd.Source) []string {
+	return []string{
+		"0", "survival", "s",
+		"1", "creative", "c",
+		"2", "adventure", "a",
+		"3", "spectator", "spc",
+	}
+}
+
 // init, gamemode komutunu kaydeder.
 func init() {
 	tree := cmd.NewCommandTree(
-		cmd.Argument("mod", "").
+		cmd.Argument("mod", "", cmd.ArgumentSuggestions("GameMode", gamemodeSuggestions)).
 			Then(
 				cmd.Argument("oyuncular", []cmd.Target{}).Optional().
 					Executes(&GameModeCommand{}),

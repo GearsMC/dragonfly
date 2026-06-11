@@ -10,20 +10,21 @@ import (
 )
 
 // GiveCommand, /give komutu.
-// Oyunculara belirtilen eşyayı istenen miktarda verir.
+// Oyunculara belirtilen eşyayı istenen miktar ve veri değeri ile verir.
 // world.ItemByName() ile merkezi item registry'sinden eşya araması yapar.
 //
-// Kullanım: /give <oyuncu> <eşya> [miktar]
+// Kullanım: /give <oyuncu> <eşya> [miktar] [veri]
 // Örnekler:
 //
-//	/give @p diamond 64        - en yakın oyuncuya 64 elmas
-//	/give Steve apple 10       - Steve'e 10 elma
-//	/give @a iron_ingot 1      - tüm oyunculara 1 demir
-//	/give @s stick             - kendine 1 çubuk
+//	/give @p diamond 64          - en yakın oyuncuya 64 elmas
+//	/give Steve apple 10         - Steve'e 10 elma
+//	/give @a wool 32 5           - tüm oyunculara 32 mavi yün (data=5)
+//	/give @s stick               - kendine 1 çubuk
 type GiveCommand struct {
 	Target []cmd.Target
 	Item   string
 	Amount cmd.Optional[int32]
+	Data   cmd.Optional[int32]
 }
 
 // Run, give komutunu çalıştırır.
@@ -41,8 +42,14 @@ func (g GiveCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 		itemName = "minecraft:" + itemName
 	}
 
-	// Merkezi item registry'sinden eşyayı bul
-	itemType, ok := world.ItemByName(itemName, 0)
+	// Veri değerini al (varsayılan 0)
+	data := int32(0)
+	if d, ok := g.Data.Load(); ok {
+		data = d
+	}
+
+	// Merkezi item registry'sinden eşyayı bul (meta verisi ile)
+	itemType, ok := world.ItemByName(itemName, int16(data))
 	if !ok {
 		output.Errorf("Bilinmeyen eşya: %s", g.Item)
 		return
@@ -51,19 +58,19 @@ func (g GiveCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 	// Miktarı belirle (varsayılan 1)
 	amount := int32(1)
 	if amt, ok := g.Amount.Load(); ok {
-		if amt < 1 || amt > 1024 {
-			output.Errorf("Miktar 1 ile 1024 arasında olmalıdır, alındı: %d", amt)
+		if amt < 1 || amt > 32767 {
+			output.Errorf("Miktar 1 ile 32767 arasında olmalıdır, alındı: %d", amt)
 			return
 		}
 		amount = amt
 	}
 
-	// Eşya yığınını oluştur ve dağıt
+	// Eşyayı dağıt
 	givenCount := 0
 	for _, p := range players {
 		remaining := int(amount)
 		for remaining > 0 {
-			// En fazla stack boyutu kadar ver (genelde 64)
+			// Her stack için 64'er olarak böl (eşya max stack boyutu)
 			give := remaining
 			if give > 64 {
 				give = 64
@@ -72,18 +79,29 @@ func (g GiveCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 
 			stack := item.NewStack(itemType, give)
 			if _, err := p.Inventory().AddItem(stack); err != nil {
-				output.Errorf("%s oyuncusuna eşya verilirken hata: %v", p.Name(), err)
-				continue
+				// Envanter doluysa hatayı bildir
+				if remaining+give > 0 {
+					output.Errorf("%s oyuncusuna eşya verilirken envanter dolu: %v", p.Name(), err)
+				}
+				break
 			}
 		}
 		givenCount++
 	}
 
 	// Başarı çıktısı
-	if givenCount == 1 {
-		output.Printf("%s oyuncusuna %d x %s verildi.", players[0].Name(), amount, g.Item)
+	if data > 0 {
+		if givenCount == 1 {
+			output.Printf("%s oyuncusuna %d x %s (veri: %d) verildi.", players[0].Name(), amount, g.Item, data)
+		} else {
+			output.Printf("%d oyuncuya %d x %s (veri: %d) verildi.", givenCount, amount, g.Item, data)
+		}
 	} else {
-		output.Printf("%d oyuncuya %d x %s verildi.", givenCount, amount, g.Item)
+		if givenCount == 1 {
+			output.Printf("%s oyuncusuna %d x %s verildi.", players[0].Name(), amount, g.Item)
+		} else {
+			output.Printf("%d oyuncuya %d x %s verildi.", givenCount, amount, g.Item)
+		}
 	}
 
 	// Çıktı kapsamını ayarla
@@ -96,10 +114,15 @@ func init() {
 	tree := cmd.NewCommandTree(
 		cmd.Argument("oyuncu", []cmd.Target{}).
 			Then(
-				cmd.Argument("eşya", "").
+				cmd.Argument("itemName", "", cmd.ArgumentSuggestions("Item", func(_ cmd.Source) []string {
+					return nil
+				})).
 					Then(
 						cmd.Argument("miktar", int32(1)).Optional().
-							Executes(&GiveCommand{}),
+							Then(
+								cmd.Argument("veri", int32(0)).Optional().
+									Executes(&GiveCommand{}),
+							),
 					),
 			),
 	)
