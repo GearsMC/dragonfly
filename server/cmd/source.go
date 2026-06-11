@@ -7,25 +7,25 @@ type SenderType uint8
 
 const (
 	// SenderTypeAny, herhangi bir kaynaktan komutu yürütülebilir anlamına gelir.
-	SenderTypeAny SenderType = 0
+	SenderTypeAny SenderType = iota // 0
 
 	// SenderTypeServer, komutu sadece sunucu konsolundan yürütülebilir anlamına gelir.
 	// Admin-only işlemler için kullanılır.
-	SenderTypeServer SenderType = 1 << iota
+	SenderTypeServer // 1
 
 	// SenderTypePlayer, komutu oyunculardan yürütülebilir anlamına gelir.
 	// Hem gerçek oyuncu hem de sahte oyuncu (NPC) dahil.
-	SenderTypePlayer
+	SenderTypePlayer // 2
 
 	// SenderTypeActualPlayer, komutu sadece gerçek oyunculardan yürütülebilir anlamına gelir.
 	// Komut blokları veya NPC'ler tarafından çalıştırılamaz.
-	SenderTypeActualPlayer
+	SenderTypeActualPlayer // 3
 
 	// SenderTypeEntity, komutu herhangi bir entity'den yürütülebilir anlamına gelir.
-	SenderTypeEntity
+	SenderTypeEntity // 4
 
 	// SenderTypeConsole, komutu konsoldan yürütülebilir anlamına gelir.
-	// Server + Console konsolu içerir.
+	// Server aliasi
 	SenderTypeConsole = SenderTypeServer
 )
 

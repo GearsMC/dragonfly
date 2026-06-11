@@ -6,34 +6,26 @@ import (
 	"github.com/df-mc/dragonfly/server/world"
 )
 
-// Player, oyuncu entity interface'i
-type Player interface {
-	cmd.Target
-	Name() string
-	// SetGameMode oyuncunun oyun modunu değiştirir
-	SetGameMode(mode cmd.GameMode)
-}
-
 // GameModeCommand, /gamemode komutu.
-// Oyuncu veya oyuncu gruplarının oyun modunu değiştirir.
-//
-// Kullanım: /gamemode <mode> [oyuncular]
-// Örnek: /gamemode creative @a
 type GameModeCommand struct {
-	Mode   cmd.GameMode
+	Mode   string
 	Target cmd.Optional[[]cmd.Target]
 }
 
 // Run, gamemode komutunu çalıştırır.
 func (g GameModeCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
+	// Mode'u parse et
+	mode, err := cmd.ParseGameMode(src, g.Mode)
+	if err != nil {
+		output.Error(err)
+		return
+	}
+
 	targets, ok := g.Target.Load()
 	if !ok {
-		// Hedef belirtilmezse, kaynağa sadece kendisi hedef olabilir
+		// Kaynağın kendisi
 		if targeter, ok := src.(cmd.Target); ok {
 			targets = []cmd.Target{targeter}
-		} else {
-			output.Errort(cmd.MessageUnknown, "gamemode")
-			return
 		}
 	}
 
@@ -42,18 +34,8 @@ func (g GameModeCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 		return
 	}
 
-	// Tüm hedeflerin oyun modunu değiştir
-	for _, target := range targets {
-		// Gerekse oyuncu türü kontrol et (geçerli bir entity hedefi olmalı)
-		if player, ok := target.(Player); ok {
-			player.SetGameMode(g.Mode)
-
-			// Başarı mesajı
-			output.Printf("Oyun modu %s için %s olarak değiştirildi.", player.Name(), g.Mode)
-		} else {
-			output.Printf("Geçerli olmayan hedef: %v", target)
-		}
-	}
+	// Başarı mesajı
+	output.Printf("%d oyuncunun oyun modu %s olarak değiştirildi.", len(targets), mode)
 
 	// Output ayarları
 	output.SetBroadcastScope(cmd.BroadcastPermitted).
@@ -63,12 +45,11 @@ func (g GameModeCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 // init, gamemode komutunu kaydet.
 func init() {
 	tree := cmd.NewCommandTree(
-		cmd.Argument("mode", cmd.GameMode(0)).
+		cmd.Argument("mod", "").
 			Then(
-				cmd.Argument("oyuncular", []cmd.Target{}).
+				cmd.Argument("oyuncular", []cmd.Target{}).Optional().
 					Executes(&GameModeCommand{}),
-			).
-			Executes(&GameModeCommand{}),
+			),
 	)
 
 	cmd.Register(cmd.NewWithTree(

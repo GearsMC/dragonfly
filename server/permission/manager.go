@@ -1,9 +1,6 @@
 package permission
 
-import (
-	"strings"
-	"sync/atomic"
-)
+import "sync/atomic"
 
 // Manager, permission registry'si ile XUID tabanlı operatör store'unu tek API altında birleştirir.
 type Manager struct {

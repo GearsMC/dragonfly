@@ -382,8 +382,15 @@ func (cmd Command) leafCanRun(leaf commandLeaf, src Source) bool {
 				sourceType = SenderTypePlayer
 			}
 
-			// İzin verilen tiplerle eşleş me kontrol et
-			if sourceType == 0 || (allowedTypes&sourceType) == 0 {
+			// İzin verilen tiplerle eşleştir - eşitlik kontrolü
+			isAllowed := false
+			if allowedTypes == SenderTypeAny {
+				isAllowed = true
+			} else if sourceType == allowedTypes {
+				isAllowed = true
+			}
+
+			if !isAllowed {
 				return false
 			}
 		}

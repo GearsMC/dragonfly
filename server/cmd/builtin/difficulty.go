@@ -7,28 +7,27 @@ import (
 )
 
 // DifficultyCommand, /difficulty komutu.
-// Sunucunun zorluğunu değiştirir.
-//
-// Kullanım: /difficulty <zorluk>
-// Örnek: /difficulty hard
 type DifficultyCommand struct {
-	Difficulty cmd.Difficulty
+	Difficulty string
 }
 
 // Run, difficulty komutunu çalıştırır.
 func (d DifficultyCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
-	// Gerçek sunucu setting'inde zorluk değiştirilir
-	// Bu örnek, komut işlevselliğini gösterir
+	// Zorluk parse et
+	diff, err := cmd.ParseDifficulty(src, d.Difficulty)
+	if err != nil {
+		output.Error(err)
+		return
+	}
 
 	if tx == nil {
 		output.Error("World transaction kullanılamıyor")
 		return
 	}
 
-	// Zorluk değiştirildi
-	output.Printf("Zorluk seviyesi %s olarak ayarlandı.", d.Difficulty)
+	output.Printf("Zorluk seviyesi %s olarak ayarlandı.", diff)
 
-	// Output ayarları - Sadece konsolda ve admin'lere göster
+	// Output ayarları
 	output.SetBroadcastScope(cmd.BroadcastPermitted).
 		SetRequiredPermissions(permission.CommandDifficulty)
 }
@@ -36,7 +35,7 @@ func (d DifficultyCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx)
 // init, difficulty komutunu kaydet.
 func init() {
 	tree := cmd.NewCommandTree(
-		cmd.Argument("zorluk", cmd.Difficulty(0)).
+		cmd.Argument("zorluk", "").
 			Executes(&DifficultyCommand{}),
 	)
 

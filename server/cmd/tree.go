@@ -77,6 +77,13 @@ func OptionalArgument() ArgumentOption {
 	}
 }
 
+// Optional, argument node'unu opsiyonel yapar (convenience method).
+// OptionalArgument() ile aynı yerini tutar.
+func (n *Node) Optional() *Node {
+	n.optional = true
+	return n
+}
+
 // ArgumentSuffix, argument için client tarafında gösterilecek suffix bilgisini ayarlar.
 func ArgumentSuffix(suffix string) ArgumentOption {
 	return func(n *Node) {

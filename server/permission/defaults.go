@@ -112,9 +112,6 @@ func RegisterDefaults(registry *Registry) {
 		CommandGameRule:        true,
 		CommandExecute:         true,
 		CommandSummon:          true,
-		CommandSetWorldSpawn:   true,
-		CommandFill:            true,    // YENİ komutu (gelecek)
-		CommandSetblock:        true,    // YENİ komutu (gelecek)
 		AbilityFlySurvival:     true,
 		BlockUseCommandBlock:   true,
 	}))
@@ -126,8 +123,6 @@ func RegisterDefaults(registry *Registry) {
 		CommandBanIP:     true,
 		CommandPardon:    true,
 		CommandPardonIP:  true,
-		CommandMute:      true,  // YENİ komutu (gelecek)
-		CommandWarn:      true,  // YENİ komutu (gelecek)
 		AbilityChat:      true,
 	}))
 
