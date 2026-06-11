@@ -7,32 +7,46 @@ import (
 )
 
 // DifficultyCommand, /difficulty komutu.
+// Sunucunun zorluk seviyesini peaceful, easy, normal veya hard olarak değiştirir.
+//
+// Kullanım: /difficulty <zorluk>
+// Örnekler:
+//   /difficulty hard      - zorluğu hard yap
+//   /difficulty peaceful  - zorluğu peaceful yap
+//   /diff e               - alias ile easy
 type DifficultyCommand struct {
 	Difficulty string
 }
 
 // Run, difficulty komutunu çalıştırır.
 func (d DifficultyCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
-	// Zorluk parse et
+	// String zorluk değerini cmd.Difficulty'ye dönüştür
 	diff, err := cmd.ParseDifficulty(src, d.Difficulty)
 	if err != nil {
 		output.Error(err)
 		return
 	}
 
-	if tx == nil {
-		output.Error("World transaction kullanılamıyor")
+	// cmd.Difficulty'yi world.Difficulty interface'ine dönüştür
+	worldDiff := diff.ToWorldDifficulty()
+
+	// World transaction üzerinden zorluğu ayarla
+	if tx != nil {
+		tx.World().SetDifficulty(worldDiff)
+	} else {
+		output.Error("Dünya işlemi kullanılamıyor.")
 		return
 	}
 
+	// Başarı çıktısı
 	output.Printf("Zorluk seviyesi %s olarak ayarlandı.", diff)
 
-	// Output ayarları
+	// Çıktı kapsamını ayarla - sadece admin izni olanlar görsün
 	output.SetBroadcastScope(cmd.BroadcastPermitted).
 		SetRequiredPermissions(permission.CommandDifficulty)
 }
 
-// init, difficulty komutunu kaydet.
+// init, difficulty komutunu kaydeder.
 func init() {
 	tree := cmd.NewCommandTree(
 		cmd.Argument("zorluk", "").

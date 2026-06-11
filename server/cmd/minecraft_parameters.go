@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-gl/mathgl/mgl64"
+	"github.com/df-mc/dragonfly/server/world"
 )
 
 // GameMode, Minecraft oyun modları temsil eder.
@@ -22,6 +23,23 @@ const (
 // String, oyun modunu string'e çevirir.
 func (g GameMode) String() string {
 	return []string{"survival", "creative", "adventure", "spectator"}[g]
+}
+
+// ToWorldGameMode, cmd.GameMode'u world.GameMode'a dönüştürür.
+// Dragonfly'nin SetGameMode API'si world.GameMode interface'i beklediği için bu dönüşüm gereklidir.
+func (g GameMode) ToWorldGameMode() world.GameMode {
+	switch g {
+	case GameModeSurvival:
+		return world.GameModeSurvival
+	case GameModeCreative:
+		return world.GameModeCreative
+	case GameModeAdventure:
+		return world.GameModeAdventure
+	case GameModeSpectator:
+		return world.GameModeSpectator
+	default:
+		return world.GameModeSurvival
+	}
 }
 
 // Type, Enum interface'i için oyun modu türünü döndürür.
@@ -76,6 +94,23 @@ const (
 // String, zorluk seviyesini string'e çevirir.
 func (d Difficulty) String() string {
 	return []string{"peaceful", "easy", "normal", "hard"}[d]
+}
+
+// ToWorldDifficulty, cmd.Difficulty'yi world.Difficulty'ye dönüştürür.
+// Dragonfly'nin SetDifficulty API'si world.Difficulty interface'i beklediği için bu dönüşüm gereklidir.
+func (d Difficulty) ToWorldDifficulty() world.Difficulty {
+	switch d {
+	case DifficultyPeaceful:
+		return world.DifficultyPeaceful
+	case DifficultyEasy:
+		return world.DifficultyEasy
+	case DifficultyNormal:
+		return world.DifficultyNormal
+	case DifficultyHard:
+		return world.DifficultyHard
+	default:
+		return world.DifficultyNormal
+	}
 }
 
 // Type, Enum interface'i için zorluk seviyesi türünü döndürür.
