@@ -1,8 +1,10 @@
 package builtin
 
 import (
+	"github.com/df-mc/dragonfly/server/block/cube"
 	"github.com/df-mc/dragonfly/server/cmd"
 	"github.com/df-mc/dragonfly/server/player"
+	"github.com/go-gl/mathgl/mgl64"
 )
 
 // resolvePlayers, []cmd.Target hedef listesini *player.Player listesine dönüştürür.
@@ -16,4 +18,9 @@ func resolvePlayers(targets []cmd.Target) []*player.Player {
 		}
 	}
 	return resolved
+}
+
+// cubePosFromVec3, mgl64.Vec3'ü cube.Pos'a dönüştürür.
+func cubePosFromVec3(vec3 mgl64.Vec3) cube.Pos {
+	return cube.PosFromVec3(vec3)
 }

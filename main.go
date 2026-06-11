@@ -9,6 +9,7 @@ import (
 	"github.com/df-mc/dragonfly/server/cmd/builtin"
 	"github.com/df-mc/dragonfly/server/console"
 	"github.com/df-mc/dragonfly/server/player/chat"
+	"github.com/df-mc/dragonfly/server/whitelist"
 	"github.com/pelletier/go-toml"
 )
 
@@ -20,13 +21,21 @@ func main() {
 	chat.Global.Subscribe(console.NewChatSubscriber(writer))
 	builtin.RegisterPerformance()
 
+	wl, err := whitelist.New("whitelist.json")
+	if err != nil {
+		panic(err)
+	}
+
 	conf, err := readConfig(logger)
 	if err != nil {
 		panic(err)
 	}
 
+	conf.Allower = wl
+
 	srv := conf.New()
 	builtin.RegisterServer(srv)
+	builtin.RegisterWhitelist(srv, wl)
 	srv.CloseOnProgramEnd()
 
 	srv.Listen()

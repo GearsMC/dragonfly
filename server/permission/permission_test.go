@@ -18,8 +18,8 @@ func TestManagerUserAndOperatorPermissions(t *testing.T) {
 	manager := NewManager(NewMemoryOperatorStore())
 	user := testSubject{xuid: "1", name: "lexa"}
 
-	if manager.CalculatePermission(user, CommandHelp) != Allow {
-		t.Fatal("varsayılan oyuncu yardım iznine sahip olmalı")
+	if manager.CalculatePermission(user, CommandList) != Allow {
+		t.Fatal("varsayılan oyuncu list iznine sahip olmalı")
 	}
 	if manager.CalculatePermission(user, CommandStop) != Undefined {
 		t.Fatal("varsayılan oyuncu stop iznine sahip olmamalı")
