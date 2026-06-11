@@ -7,19 +7,44 @@ import (
 	"golang.org/x/text/language"
 )
 
-// Output holds the output of a command execution. It holds success messages
-// and error messages, which the source of a command execution gets sent.
+// BroadcastScope, komut çıktısının yayınlanma kapsamını belirler.
+// Hangiplere hangi çıktıların gösterilmesi gerektiğini kontrol eder.
+type BroadcastScope string
+
+const (
+	// BroadcastConsole, çıktının sadece admin konsoluna gösterilmesini belirtir.
+	// Komut çalıştıran oyunculara gösterilmez.
+	BroadcastConsole BroadcastScope = "console"
+
+	// BroadcastRequester, çıktının sadece komutu çalıştıran kaynağa gösterilmesini belirtir.
+	// Hiç kimseye broadcast edilmez.
+	BroadcastRequester BroadcastScope = "requester"
+
+	// BroadcastPermitted, çıktının belirtilen izinlere sahip kişilere gösterilmesini belirtir.
+	// RequiredPermissions alanı dikkate alınır.
+	BroadcastPermitted BroadcastScope = "permitted"
+
+	// BroadcastAll, çıktının herkese (tüm izin seviyeleri) gösterilmesini belirtir.
+	// RequiredPermissions dikkate alınmaz.
+	BroadcastAll BroadcastScope = "all"
+)
+
+// Output, komut yürütülmesinin çıktısını tutar. Başarı mesajları ve hata mesajları
+// içerir ve bunlar komutu çalıştıran kaynağa gönderilir.
+// YENİ: Broadcast kapsamı ve gerekli izinler desteklenir.
 type Output struct {
-	errors   []error
-	messages []fmt.Stringer
+	errors                  []error
+	messages                []fmt.Stringer
+	broadcastScope          BroadcastScope // Çıktının nereye yayınlanması gerektiği
+	requiredPermissions     []string       // BroadcastPermitted olduğunda gerekli izinler
 }
 
-// Errorf formats an error message and adds it to the command output.
+// Errorf, hata mesajını formatlar ve komut çıktısına ekler.
 func (o *Output) Errorf(format string, a ...any) {
 	o.errors = append(o.errors, fmt.Errorf(format, a...))
 }
 
-// Error formats an error message and adds it to the command output.
+// Error, hata mesajını formatlar ve komut çıktısına ekler.
 func (o *Output) Error(a ...any) {
 	if len(a) == 1 {
 		if err, ok := a[0].(error); ok {
@@ -30,50 +55,77 @@ func (o *Output) Error(a ...any) {
 	o.errors = append(o.errors, errors.New(fmt.Sprint(a...)))
 }
 
-// Errort adds a translation as an error message and parameterises it using the
-// arguments passed. Errort panics if the number of arguments is incorrect.
+// Errort, çevirili bir hata mesajı ekler ve fonksiyon argümanları ile parametrelendirir.
+// Argüman sayısı yanlışsa Errort panik yapar.
 func (o *Output) Errort(t chat.Translation, a ...any) {
 	o.errors = append(o.errors, t.F(a...))
 }
 
-// Printf formats a (success) message and adds it to the command output.
+// Printf, (başarı) mesajını formatlar ve komut çıktısına ekler.
 func (o *Output) Printf(format string, a ...any) {
 	o.messages = append(o.messages, stringer(fmt.Sprintf(format, a...)))
 }
 
-// Print formats a (success) message and adds it to the command output.
+// Print, (başarı) mesajını formatlar ve komut çıktısına ekler.
 func (o *Output) Print(a ...any) {
 	o.messages = append(o.messages, stringer(fmt.Sprint(a...)))
 }
 
-// Printt adds a translation as a (success) message and parameterises it using
-// the arguments passed. Printt panics if the number of arguments is incorrect.
+// Printt, çevirili bir (başarı) mesajı ekler ve fonksiyon argümanları ile parametrelendirir.
+// Argüman sayısı yanlışsa Printt panik yapar.
 func (o *Output) Printt(t chat.Translation, a ...any) {
 	o.messages = append(o.messages, t.F(a...))
 }
 
-// Errors returns a list of all errors added to the command output. Usually
-// only one error message is set: After one error message, execution of a
-// command typically terminates.
+// Errors, komut çıktısına eklenen tüm hataları döndürür. Genellikle
+// sadece bir hata mesajı ayarlanır: Bir hata mesajından sonra,
+// bir komutun yürütülmesi tipik olarak sonlanır.
 func (o *Output) Errors() []error {
 	return o.errors
 }
 
-// ErrorCount returns the count of errors that the command output has.
+// ErrorCount, komut çıktısının sahip olduğu hata sayısını döndürür.
 func (o *Output) ErrorCount() int {
 	return len(o.errors)
 }
 
-// Messages returns a list of all messages added to the command output. The
-// amount of messages present depends on the command called.
+// Messages, komut çıktısına eklenen tüm mesajları döndürür. Mevcut
+// mesaj miktarı çağrılan komuta bağlıdır.
 func (o *Output) Messages() []fmt.Stringer {
 	return o.messages
 }
 
-// MessageCount returns the count of (success) messages that the command output
-// has.
+// MessageCount, komut çıktısının sahip olduğu (başarı) mesaj sayısını döndürür.
 func (o *Output) MessageCount() int {
 	return len(o.messages)
+}
+
+// SetBroadcastScope, bu çıktının yayınlanacağı kapsamı ayarlar.
+// Varsayılan değer BroadcastAll'dur.
+func (o *Output) SetBroadcastScope(scope BroadcastScope) *Output {
+	o.broadcastScope = scope
+	return o
+}
+
+// BroadcastScope, bu çıktının yayınlanacağı kapsamı döndürür.
+func (o *Output) BroadcastScope() BroadcastScope {
+	if o.broadcastScope == "" {
+		return BroadcastAll
+	}
+	return o.broadcastScope
+}
+
+// SetRequiredPermissions, BroadcastPermitted kapsamı kullanıldığında
+// bu çıktıyı görmek için gerekli izinleri ayarlar.
+func (o *Output) SetRequiredPermissions(permissions ...string) *Output {
+	o.requiredPermissions = make([]string, len(permissions))
+	copy(o.requiredPermissions, permissions)
+	return o
+}
+
+// RequiredPermissions, bu çıktıyı görmek için gerekli izinleri döndürür.
+func (o *Output) RequiredPermissions() []string {
+	return o.requiredPermissions
 }
 
 type stringer string

@@ -1,5 +1,7 @@
 package permission
 
+import "strings"
+
 // Snapshot, bir subject için hesaplanmış immutable permission görünümüdür.
 // Hot path permission kontrollerinde store veya registry gezmeden bu görünüm okunur.
 type Snapshot struct {
@@ -25,13 +27,28 @@ func (s Snapshot) Operator() bool {
 
 // Permission, snapshot içinde verilen permission sonucunu döndürür.
 // Operatörler açık deny bulunmadığı sürece bilinmeyen permissionları da alır.
+// Wildcard pattern matching destekler: "command.*" gibi tarama yapabilir.
 func (s Snapshot) Permission(name string) State {
 	if name == "" {
 		return Undefined
 	}
+
+	// Tam eşleşme dene
 	if state, ok := s.permission[name]; ok {
 		return state
 	}
+
+	// Wildcard pattern matching dene (ör: "command.give" -> "command.*")
+	// Noktadan bölünmüş parçalarda sondan başa doğru wildcard arama yap
+	parts := strings.Split(name, ".")
+	for i := len(parts); i > 1; i-- {
+		wildcard := strings.Join(parts[:i], ".") + ".*"
+		if state, ok := s.permission[wildcard]; ok {
+			return state
+		}
+	}
+
+	// Operatörler bilinmeyen izinleri alır
 	if s.operator {
 		return Allow
 	}

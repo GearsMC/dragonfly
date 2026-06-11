@@ -35,12 +35,20 @@ type Runnable interface {
 	Run(src Source, o *Output, tx *world.Tx)
 }
 
-// Allower may be implemented by a type also implementing Runnable to limit the sources that may run the
-// command.
+// Allower, Runnable de uygulanacak bir tür tarafından uygulanabilir ve
+// komutu çalıştırbilen kaynakları sınırlandırmak için kullanılabilir.
 type Allower interface {
-	// Allow checks if the Source passed is allowed to execute the command. True is returned if the Source is
-	// allowed to execute the command.
+	// Allow, geçilen Source'un komutu çalıştırmasına izin verilip verilmediğini kontrol eder.
+	// Kaynağa komutu çalıştırması izni verilirse true değer döndürülür.
 	Allow(src Source) bool
+}
+
+// SenderTypeAllower, Runnable de uygulanacak bir tür tarafından uygulanabilir ve
+// komutu çalıştırbilen kaynakların tipini sınırlandırmak için kullanılabilir.
+type SenderTypeAllower interface {
+	// AllowedSenderType, bu komutta çalıştırabilen gönderici türlerini döndürür.
+	// Komutu çalıştırabilen hiçbir gönderici varsa SenderTypeAny döndürülebilir.
+	AllowedSenderType() SenderType
 }
 
 // Command is a wrapper around a Runnable. It provides additional identity and utility methods for the actual
@@ -345,6 +353,7 @@ func (cmd Command) executeLeaf(leaf commandLeaf, args string, source Source, out
 }
 
 func (cmd Command) leafCanRun(leaf commandLeaf, src Source) bool {
+	// İzinleri kontrol et
 	if len(leaf.permissions) > 0 {
 		permissionSource, ok := src.(PermissionSource)
 		if !ok {
@@ -356,7 +365,31 @@ func (cmd Command) leafCanRun(leaf commandLeaf, src Source) bool {
 			}
 		}
 	}
+
 	v := leaf.runnable.Interface().(Runnable)
+
+	// Gönderici tipini kontrol et
+	if senderTypeAllower, ok := v.(SenderTypeAllower); ok {
+		allowedTypes := senderTypeAllower.AllowedSenderType()
+		if allowedTypes != SenderTypeAny {
+			// Kaynağın gönderici tipini belirle
+			var sourceType SenderType
+			if senderTypeSource, ok := src.(SenderTypeSource); ok {
+				sourceType = senderTypeSource.SenderTypeOf()
+			} else if _, isConsole := src.(ConsoleSource); isConsole {
+				sourceType = SenderTypeServer
+			} else {
+				sourceType = SenderTypePlayer
+			}
+
+			// İzin verilen tiplerle eşleş me kontrol et
+			if sourceType == 0 || (allowedTypes&sourceType) == 0 {
+				return false
+			}
+		}
+	}
+
+	// Allower interface'i kontrol et
 	if allower, ok := v.(Allower); ok {
 		return allower.Allow(src)
 	}

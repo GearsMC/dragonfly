@@ -7,13 +7,13 @@ import (
 	"github.com/df-mc/dragonfly/server/world"
 )
 
-// BeforeExecute is called after command lookup and permission checks, but
-// before the Command executes. Returning false cancels execution.
+// BeforeExecute, komut araması ve izin kontrolleri yapıldıktan sonra,
+// ancak Command yürütülmesinden önce çağrılır. false döndürmek yürütülmeyi iptal eder.
 type BeforeExecute func(command Command, args []string) bool
 
-// Dispatch parses a command line, looks up the command and executes it for the
-// Source passed. Player-like sources must use a leading slash, while
-// ConsoleSource implementations may omit it.
+// Dispatch, komut satırını ayrıştırır, komutu arar ve geçilen Source için
+// yürütür. Oyuncu benzeri kaynaklar başında slash kullanmalıdır, ancak
+// ConsoleSource uygulamaları bunu atlayabilir.
 func Dispatch(commandLine string, source Source, tx *world.Tx, before BeforeExecute) bool {
 	if source == nil {
 		panic("dispatch: invalid command source: source must not be nil")
@@ -28,6 +28,7 @@ func Dispatch(commandLine string, source Source, tx *world.Tx, before BeforeExec
 	if !ok || len(command.Runnables(source)) == 0 {
 		output := &Output{}
 		output.Errort(MessageUnknown, name)
+		// Bilinmeyen komut hatası her zaman gönderici tarafından görülür
 		source.SendCommandOutput(output)
 		return false
 	}
@@ -40,8 +41,8 @@ func Dispatch(commandLine string, source Source, tx *world.Tx, before BeforeExec
 	return true
 }
 
-// ParseCommandLine extracts the command name and raw argument string from a
-// command line. The returned command name is normalised to lowercase.
+// ParseCommandLine, komut satırından komut adını ve ham argüman dizesini ayıklayan fonksiyondur.
+// Döndürülen komut adı küçük harflere normalize edilir.
 func ParseCommandLine(commandLine string, source Source) (name string, args string, ok bool) {
 	commandLine = strings.TrimSpace(commandLine)
 	if commandLine == "" {
@@ -70,8 +71,8 @@ func ParseCommandLine(commandLine string, source Source) (name string, args stri
 	return name, strings.TrimSpace(args), true
 }
 
-// ArgumentPreview returns a best-effort split of the raw argument string. It is
-// intended for command execution hooks and mirrors the parser used by Command.
+// ArgumentPreview, ham argüman dizesinin en iyi çabasıyla bölünmesini döndürür.
+// Komut yürütme kancaları için tasarlanmış ve Command tarafından kullanılan ayrıştırıcıyı yansıtır.
 func ArgumentPreview(args string) []string {
 	if args == "" {
 		return nil
@@ -83,4 +84,49 @@ func ArgumentPreview(args string) []string {
 		return strings.Fields(args)
 	}
 	return record
+}
+
+// FilterOutput, kaynak tarafından erişilebilecek çıktı mesajlarını filtreler.
+// BroadcastScope'a göre mesajları gösterir veya gizler.
+func FilterOutput(output *Output, source Source) *Output {
+	scope := output.BroadcastScope()
+
+	switch scope {
+	case BroadcastConsole:
+		// Sadece konsoldan görülür
+		if _, isConsole := source.(ConsoleSource); !isConsole {
+			output.messages = nil
+		}
+
+	case BroadcastRequester:
+		// Sadece isteyen kaynağa gönderilir (zaten yapılmış)
+		// Bu durumda filtreleme gerekmez
+
+	case BroadcastPermitted:
+		// Belirtilen izinlere sahip kaynaklara gönderilir
+		perms := output.RequiredPermissions()
+		if len(perms) > 0 {
+			if permSource, ok := source.(PermissionSource); ok {
+				// İznesi olmayan oyuncu ise mesajları gizle
+				hasAllPermissions := true
+				for _, perm := range perms {
+					if !permSource.HasCommandPermission(perm) {
+						hasAllPermissions = false
+						break
+					}
+				}
+				if !hasAllPermissions {
+					output.messages = nil
+				}
+			} else {
+				// Izin kontrol edilemiyor, mesajları gizle
+				output.messages = nil
+			}
+		}
+
+	case BroadcastAll:
+		// Herkese göster, filtreleme yok
+	}
+
+	return output
 }
