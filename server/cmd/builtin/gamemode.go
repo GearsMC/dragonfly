@@ -47,7 +47,7 @@ func (g GameModeCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 	}
 
 	// Hedefleri gerçek oyunculara çözümle
-	players := resolvePlayers(tx, targets)
+	players := resolvePlayers(targets)
 	if len(players) == 0 {
 		output.Error("Hedef oyuncu bulunamadı.")
 		return

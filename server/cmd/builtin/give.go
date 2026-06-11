@@ -30,7 +30,7 @@ type GiveCommand struct {
 // Run, give komutunu çalıştırır.
 func (g GiveCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 	// Hedef oyuncuları çözümle
-	players := resolvePlayers(tx, g.Target)
+	players := resolvePlayers(g.Target)
 	if len(players) == 0 {
 		output.Error("Hedef oyuncu bulunamadı.")
 		return
