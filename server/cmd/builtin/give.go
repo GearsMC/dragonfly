@@ -78,6 +78,16 @@ func (g GiveCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 			remaining -= give
 
 			stack := item.NewStack(itemType, give)
+			if data > 0 {
+				if durable, ok := itemType.(item.Durable); ok {
+					maxDur := durable.DurabilityInfo().MaxDurability
+					remaining := maxDur - int(data)
+					if remaining < 1 {
+						remaining = 1
+					}
+					stack = stack.WithDurability(remaining)
+				}
+			}
 			if _, err := p.Inventory().AddItem(stack); err != nil {
 				// Envanter doluysa hatayı bildir
 				if remaining+give > 0 {
