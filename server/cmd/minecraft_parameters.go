@@ -67,20 +67,6 @@ func ParseGameMode(src Source, input string) (GameMode, error) {
 	return 0, fmt.Errorf("geçersiz oyun modu: %s", input)
 }
 
-// GameModeParameter, oyun modu parametresi.
-// Accepted values: 0/survival/s, 1/creative/c, 2/adventure/a, 3/spectator/spc
-type GameModeParameter struct{}
-
-// Parse, oyun modunu ayrıştırır.
-func (g GameModeParameter) Parse(src Source, input string) (any, error) {
-	return ParseGameMode(src, input)
-}
-
-// String, parametrenin türünü tanımlar.
-func (g GameModeParameter) String() string {
-	return "oyun_modu"
-}
-
 // Difficulty, Minecraft zorluk seviyeleri
 type Difficulty uint8
 
@@ -136,19 +122,6 @@ func ParseDifficulty(src Source, input string) (Difficulty, error) {
 		return DifficultyHard, nil
 	}
 	return 0, fmt.Errorf("geçersiz zorluk seviyesi: %s", input)
-}
-
-// DifficultyParameter, zorluk seviyesi parametresi
-type DifficultyParameter struct{}
-
-// Parse, zorluk seviyesini ayrıştırır.
-func (d DifficultyParameter) Parse(src Source, input string) (any, error) {
-	return ParseDifficulty(src, input)
-}
-
-// String, parametrenin türünü tanımlar.
-func (d DifficultyParameter) String() string {
-	return "zorluk_seviyesi"
 }
 
 // CoordinateMode, koordinat modunun türü
@@ -249,54 +222,6 @@ func (p Position3D) String() string {
 	return fmt.Sprintf("%s %s %s", p.X.String(), p.Y.String(), p.Z.String())
 }
 
-// Position3DParameter, 3D konum parametresi
-// X Y Z koordinatlarını ayrıştırır (göreceli ve mutlak)
-type Position3DParameter struct{}
-
-// Parse, 3 ayrılmış koordinatı ayrıştırır.
-// Uyarı: Bu yalnızca tek argümanı kabul eder ve ayrıştırıcı tarafından
-// 3 argümana bölerek kullanılmalıdır. Alternatif olarak 3 ayrı Coordinate parametresi kullan.
-func (p Position3DParameter) Parse(src Source, input string) (any, error) {
-	// Bu placeholder'dir - asıl işlev Parser'da yapılır (3 argüman)
-	parts := strings.Fields(input)
-	if len(parts) != 3 {
-		return nil, fmt.Errorf("konum 3 koordinat gerektiriyor (X Y Z), alındı %d", len(parts))
-	}
-
-	x, err := ParseCoordinate(parts[0])
-	if err != nil {
-		return nil, err
-	}
-	y, err := ParseCoordinate(parts[1])
-	if err != nil {
-		return nil, err
-	}
-	z, err := ParseCoordinate(parts[2])
-	if err != nil {
-		return nil, err
-	}
-
-	return Position3D{X: x, Y: y, Z: z}, nil
-}
-
-// String, parametrenin türünü tanımlar.
-func (p Position3DParameter) String() string {
-	return "konum"
-}
-
-// CoordinateParameter, tek X/Y/Z koordinat parametresi
-type CoordinateParameter struct{}
-
-// Parse, koordinatı ayrıştırır.
-func (c CoordinateParameter) Parse(src Source, input string) (any, error) {
-	return ParseCoordinate(input)
-}
-
-// String, parametrenin türünü tanımlar.
-func (c CoordinateParameter) String() string {
-	return "sayı"
-}
-
 // IntRange, Min..Max tarzında sayı aralığı temsil eder
 type IntRange struct {
 	Min int32
@@ -340,31 +265,4 @@ func ParseIntRange(input string) (IntRange, error) {
 	}
 	intVal := int32(val)
 	return IntRange{Min: intVal, Max: intVal}, nil
-}
-
-// IntRangeParameter, sayı aralığı parametresi
-type IntRangeParameter struct{}
-
-// Parse, sayı aralığını ayrıştırır.
-func (r IntRangeParameter) Parse(src Source, input string) (any, error) {
-	return ParseIntRange(input)
-}
-
-// String, parametrenin türünü tanımlar.
-func (r IntRangeParameter) String() string {
-	return "sayı_aralığı"
-}
-
-// MessageParameter, kalan tüm argümanları tek metne dönüştürür.
-// Greedy text parametresi olarak da bilinen bu, komutun sonunda olmalıdır.
-type MessageParameter struct{}
-
-// Parse, geriş metni ayrıştırır (boşluklarla birleştirilen)
-func (m MessageParameter) Parse(src Source, input string) (any, error) {
-	return input, nil
-}
-
-// String, parametrenin türünü tanımlar.
-func (m MessageParameter) String() string {
-	return "mesaj"
 }
