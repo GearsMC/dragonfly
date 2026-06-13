@@ -1,6 +1,7 @@
 package player
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/rand/v2"
@@ -1499,7 +1500,7 @@ func (p *Player) SetHeldSlot(to int) error {
 	// The slot that the player might have selected must be within the hotbar:
 	// The held item cannot be in a different place in the inventory.
 	if to < 0 || to > 8 {
-		return fmt.Errorf("held slot exceeds hotbar range 0-8: slot is %v", to)
+		return errors.New(i18n.R("%df.player.error.held_slot_range", to))
 	}
 	from := int(*p.heldSlot)
 	if from == to {
@@ -3055,7 +3056,7 @@ func (p *Player) OpenSign(pos cube.Pos, frontSide bool) {
 func (p *Player) EditSign(pos cube.Pos, frontText, backText string) error {
 	sign, ok := p.tx.Block(pos).(block.Sign)
 	if !ok {
-		return fmt.Errorf("edit sign: no sign at position %v", pos)
+		return errors.New(i18n.R("%df.player.error.edit_sign_no_sign", pos))
 	}
 
 	if sign.Waxed {
@@ -3089,7 +3090,7 @@ func (p *Player) EditSign(pos cube.Pos, frontText, backText string) error {
 func (p *Player) TurnLecternPage(pos cube.Pos, page int) error {
 	lectern, ok := p.tx.Block(pos).(block.Lectern)
 	if !ok {
-		return fmt.Errorf("edit lectern: no lectern at position %v", pos)
+		return errors.New(i18n.R("%df.player.error.edit_lectern_no_lectern", pos))
 	}
 
 	ctx := event.C(p)
@@ -3340,11 +3341,11 @@ func (p *Player) session() *session.Session {
 func (p *Player) useContext() *item.UseContext {
 	call := func(ctx *inventory.Context, slot int, it item.Stack, f func(ctx *inventory.Context, slot int, it item.Stack)) error {
 		if ctx.Cancelled() {
-			return fmt.Errorf("action was cancelled")
+			return errors.New(i18n.R("%df.player.error.action_cancelled"))
 		}
 		f(ctx, slot, it)
 		if ctx.Cancelled() {
-			return fmt.Errorf("action was cancelled")
+			return errors.New(i18n.R("%df.player.error.action_cancelled"))
 		}
 		return nil
 	}

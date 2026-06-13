@@ -1,7 +1,9 @@
 package session
 
 import (
+	"errors"
 	"fmt"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/player/form"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
@@ -36,10 +38,10 @@ func (h *ModalFormResponseHandler) Handle(p packet.Packet, _ *Session, tx *world
 		resp = nil
 	}
 	if !ok {
-		return fmt.Errorf("no form with ID %v currently opened", pk.FormID)
+		return errors.New(i18n.R("%df.session.handler.modal_form_response.no_form", pk.FormID))
 	}
 	if err := f.SubmitJSON(resp, c, tx); err != nil {
-		return fmt.Errorf("error submitting form data: %w", err)
+		return fmt.Errorf("%s: %w", i18n.R("%df.session.handler.modal_form_response.submit_error"), err)
 	}
 	return nil
 }

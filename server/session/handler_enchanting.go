@@ -1,13 +1,14 @@
 package session
 
 import (
-	"fmt"
+	"errors"
 	"math"
 	"math/rand/v2"
 	"slices"
 
 	"github.com/df-mc/dragonfly/server/block"
 	"github.com/df-mc/dragonfly/server/block/cube"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/internal/sliceutil"
 	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/world"
@@ -26,7 +27,7 @@ const (
 func (h *ItemStackRequestHandler) handleEnchant(a *protocol.CraftRecipeStackRequestAction, s *Session, tx *world.Tx, c Controllable) error {
 	// First ensure that the selected slot is not out of bounds.
 	if a.RecipeNetworkID > 2 {
-		return fmt.Errorf("invalid recipe network id: %d", a.RecipeNetworkID)
+		return errors.New(i18n.R("%df.session.handler.enchanting.invalid_recipe_id", a.RecipeNetworkID))
 	}
 
 	// Now ensure we have an input and only one input.
@@ -35,13 +36,13 @@ func (h *ItemStackRequestHandler) handleEnchant(a *protocol.CraftRecipeStackRequ
 		return err
 	}
 	if input.Count() > 1 {
-		return fmt.Errorf("enchanting tables only accept one item at a time")
+		return errors.New(i18n.R("%df.session.handler.enchanting.single_item_only"))
 	}
 
 	// Determine the available enchantments using the session's enchantment seed.
 	allCosts, allEnchants := s.determineAvailableEnchantments(tx, c, *s.openedPos.Load(), input)
 	if len(allEnchants) == 0 {
-		return fmt.Errorf("can't enchant non-enchantable item")
+		return errors.New(i18n.R("%df.session.handler.enchanting.not_enchantable"))
 	}
 
 	// Use the slot plus one as the cost. The requirement and enchantments can be found in the results from
@@ -54,10 +55,10 @@ func (h *ItemStackRequestHandler) handleEnchant(a *protocol.CraftRecipeStackRequ
 	if !c.GameMode().CreativeInventory() {
 		// First ensure that the experience level is both underneath the requirement and the cost.
 		if c.ExperienceLevel() < requirement {
-			return fmt.Errorf("not enough levels to meet requirement")
+			return errors.New(i18n.R("%df.session.handler.enchanting.not_enough_levels_requirement"))
 		}
 		if c.ExperienceLevel() < cost {
-			return fmt.Errorf("not enough levels to meet cost")
+			return errors.New(i18n.R("%df.session.handler.enchanting.not_enough_levels_cost"))
 		}
 
 		// Then ensure that the player has input Lapis Lazuli, and enough of it to meet the cost.
@@ -66,10 +67,10 @@ func (h *ItemStackRequestHandler) handleEnchant(a *protocol.CraftRecipeStackRequ
 			return err
 		}
 		if _, ok := lapis.Item().(item.LapisLazuli); !ok {
-			return fmt.Errorf("lapis lazuli was not input")
+			return errors.New(i18n.R("%df.session.handler.enchanting.no_lapis"))
 		}
 		if lapis.Count() < cost {
-			return fmt.Errorf("not enough lapis lazuli to meet cost")
+			return errors.New(i18n.R("%df.session.handler.enchanting.not_enough_lapis"))
 		}
 
 		// Deduct the experience and Lapis Lazuli.
@@ -315,7 +316,7 @@ func weightedRandomEnchantment(rs *rand.Rand, enchants []item.Enchantment) item.
 			return e
 		}
 	}
-	panic("should never happen")
+	panic(i18n.R("%df.session.handler.enchanting.panic.should_never_happen"))
 }
 
 // clamp clamps a value into the given range.

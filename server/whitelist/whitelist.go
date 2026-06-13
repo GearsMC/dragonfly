@@ -2,7 +2,7 @@ package whitelist
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -110,7 +110,7 @@ func (w *Whitelist) SetEnabled(v bool) error {
 func (w *Whitelist) Add(xuid, lastKnownName string) error {
 	xuid = strings.TrimSpace(xuid)
 	if xuid == "" {
-		return errors.New("XUID boş olamaz")
+		return fmt.Errorf("%s", i18n.R("%df.whitelist.error.empty_xuid"))
 	}
 	lastKnownName = strings.TrimSpace(lastKnownName)
 
@@ -132,7 +132,7 @@ func (w *Whitelist) Add(xuid, lastKnownName string) error {
 func (w *Whitelist) Remove(xuid string) error {
 	xuid = strings.TrimSpace(xuid)
 	if xuid == "" {
-		return errors.New("XUID boş olamaz")
+		return fmt.Errorf("%s", i18n.R("%df.whitelist.error.empty_xuid"))
 	}
 
 	w.mu.Lock()
@@ -189,11 +189,11 @@ func (w *Whitelist) ResolveByName(name string) (string, bool) {
 
 func (w *Whitelist) load() error {
 	b, err := os.ReadFile(w.path)
-	if errors.Is(err, os.ErrNotExist) {
+	if os.IsNotExist(err) {
 		return nil
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", i18n.R("%df.whitelist.error.load"), err)
 	}
 	if len(strings.TrimSpace(string(b))) == 0 {
 		return nil
@@ -201,7 +201,7 @@ func (w *Whitelist) load() error {
 
 	var c Config
 	if err := json.Unmarshal(b, &c); err != nil {
-		return err
+		return fmt.Errorf("%s: %w", i18n.R("%df.whitelist.error.load"), err)
 	}
 	w.enabled = c.Enabled
 	if c.Entries != nil {
@@ -212,7 +212,7 @@ func (w *Whitelist) load() error {
 
 func (w *Whitelist) saveLocked() error {
 	if err := os.MkdirAll(filepath.Dir(w.path), 0777); err != nil {
-		return err
+		return fmt.Errorf("%s: %w", i18n.R("%df.whitelist.error.save"), err)
 	}
 	c := Config{
 		Enabled: w.enabled,
@@ -220,11 +220,14 @@ func (w *Whitelist) saveLocked() error {
 	}
 	b, err := json.MarshalIndent(c, "", "\t")
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", i18n.R("%df.whitelist.error.marshal"), err)
 	}
 	tmp := w.path + ".tmp"
 	if err := os.WriteFile(tmp, append(b, '\n'), 0666); err != nil {
-		return err
+		return fmt.Errorf("%s: %w", i18n.R("%df.whitelist.error.save"), err)
 	}
-	return os.Rename(tmp, w.path)
+	if err := os.Rename(tmp, w.path); err != nil {
+		return fmt.Errorf("%s: %w", i18n.R("%df.whitelist.error.save"), err)
+	}
+	return nil
 }

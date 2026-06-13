@@ -1,10 +1,12 @@
 package session
 
 import (
+	"errors"
 	"fmt"
 	"math"
 
 	"github.com/df-mc/dragonfly/server/block/cube"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/go-gl/mathgl/mgl64"
@@ -37,7 +39,7 @@ func (h PlayerAuthInputHandler) handleMovement(pk *packet.PlayerAuthInput, s *Se
 			// world), see #425. For this reason, we don't actually return an error if this happens, because this will
 			// result in the player being kicked. Just log it and replace the NaN value with the one we have tracked
 			// server-side.
-			s.conf.Log.Debug("process packet: PlayerAuthInput: found nan/inf values. assuming server-side values", "pos", fmt.Sprint(pk.Position), "yaw", pk.Yaw, "head-yaw", pk.HeadYaw, "pitch", pk.Pitch)
+			s.conf.Log.Debug(i18n.R("%df.session.handler.player_auth_input.nan_inf"), "pos", fmt.Sprint(pk.Position), "yaw", pk.Yaw, "head-yaw", pk.HeadYaw, "pitch", pk.Pitch)
 			*v = float32(reference[i])
 		}
 	}
@@ -90,7 +92,7 @@ func (h PlayerAuthInputHandler) handleActions(pk *packet.PlayerAuthInput, s *Ses
 		if err := sh.handleRequest(pk.ItemStackRequest, s, tx, c); err != nil {
 			// Item stacks being out of sync isn't uncommon, so don't error. Just debug the error and let the
 			// revert do its work.
-			s.conf.Log.Debug("process packet: PlayerAuthInput: resolve item stack request: " + err.Error())
+			s.conf.Log.Debug(i18n.R("%df.session.handler.player_auth_input.resolve_item_stack_request", err))
 		}
 	}
 	return nil
@@ -138,7 +140,7 @@ func (h PlayerAuthInputHandler) handleInputFlags(flags protocol.Bitset, s *Sessi
 	}
 	if flags.Load(packet.InputFlagStartFlying) {
 		if !c.GameMode().AllowsFlying() {
-			s.conf.Log.Debug("process packet: PlayerAuthInput: flying flag enabled while unable to fly")
+			s.conf.Log.Debug(i18n.R("%df.session.handler.player_auth_input.flying_flag"))
 			s.SendAbilities(c)
 		} else {
 			c.StartFlying()
@@ -156,7 +158,7 @@ func (h PlayerAuthInputHandler) handleUseItemData(data protocol.UseItemTransacti
 
 	held, _ := c.HeldItems()
 	if !held.Equal(stackToItem(s.br, data.HeldItem.Stack)) {
-		s.conf.Log.Debug("process packet: PlayerAuthInput: UseItemTransaction: mismatch between actual held item and client held item")
+		s.conf.Log.Debug(i18n.R("%df.session.handler.player_auth_input.held_item_mismatch"))
 		return nil
 	}
 	pos := cube.Pos{int(data.BlockPosition[0]), int(data.BlockPosition[1]), int(data.BlockPosition[2])}
@@ -166,7 +168,7 @@ func (h PlayerAuthInputHandler) handleUseItemData(data protocol.UseItemTransacti
 	case protocol.UseItemActionBreakBlock:
 		c.BreakBlock(pos)
 	default:
-		return fmt.Errorf("unhandled UseItem ActionType for PlayerAuthInput packet %v", data.ActionType)
+		return errors.New(i18n.R("%df.session.handler.player_auth_input.unhandled_use_item", data.ActionType))
 	}
 	return nil
 }

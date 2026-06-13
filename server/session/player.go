@@ -2,6 +2,7 @@ package session
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image/color"
 	"maps"
@@ -15,6 +16,7 @@ import (
 	"github.com/df-mc/dragonfly/server/cmd"
 	"github.com/df-mc/dragonfly/server/entity"
 	"github.com/df-mc/dragonfly/server/entity/effect"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/internal/nbtconv"
 	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/item/creative"
@@ -444,7 +446,7 @@ func (s *Session) SendForm(f form.Form) {
 
 	h.mu.Lock()
 	if len(h.forms) > 10 {
-		s.conf.Log.Debug("SendForm: more than 10 active forms: dropping an existing one")
+		s.conf.Log.Debug(i18n.R("%df.session.send_form.too_many"))
 		for k := range h.forms {
 			delete(h.forms, k)
 			break
@@ -483,6 +485,28 @@ func (s *Session) SendGameMode(c Controllable) {
 	s.SendAbilities(c)
 }
 
+// canFly, oyuncunun mevcut oyun modunda uçup uçamayacağını döndürür.
+// Oyun modu kendi başına uçmaya izin vermiyorsa (survival/adventure), ilgili
+// fly permission'ı kontrol edilir.
+func canFly(c Controllable, mode world.GameMode) bool {
+	if mode.AllowsFlying() {
+		return true
+	}
+	ps, ok := c.(cmd.PermissionSource)
+	if !ok {
+		return false
+	}
+	switch mode {
+	case world.GameModeSurvival:
+		return ps.HasCommandPermission(permission.AbilityFlySurvival)
+	case world.GameModeCreative:
+		return ps.HasCommandPermission(permission.AbilityFlyCreative)
+	case world.GameModeAdventure:
+		return ps.HasCommandPermission(permission.AbilityFlyAdventure)
+	}
+	return false
+}
+
 // SendAbilities sends the abilities of the Controllable entity of the session to the client.
 func (s *Session) SendAbilities(c Controllable) {
 	mode, abilities := c.GameMode(), uint32(0)
@@ -496,7 +520,7 @@ func (s *Session) SendAbilities(c Controllable) {
 			commandPermission = protocol.CommandPermissionLevelGameDirectors
 		}
 	}
-	if mode.AllowsFlying() {
+	if canFly(c, mode) {
 		abilities |= protocol.AbilityMayFly
 		if c.Flying() {
 			abilities |= protocol.AbilityFlying
@@ -584,7 +608,7 @@ func (s *Session) SendEffect(e effect.Effect) {
 func (s *Session) SendEffectRemoval(e effect.Type) {
 	id, ok := effect.ID(e)
 	if !ok {
-		panic(fmt.Sprintf("unregistered effect type %T", e))
+		panic(i18n.R("%df.session.panic.unknown_effect", fmt.Sprintf("%T", e)))
 	}
 	s.writePacket(&packet.MobEffect{
 		EntityRuntimeID: selfEntityRuntimeID,
@@ -731,7 +755,7 @@ func (s *Session) VerifySlot(slot int, expected item.Stack) error {
 	// The slot that the player might have selected must be within the hotbar:
 	// The held item cannot be in a different place in the inventory.
 	if slot < 0 || slot > 8 {
-		return fmt.Errorf("slot exceeds hotbar range 0-8: slot is %v", slot)
+		return errors.New(i18n.R("%df.session.slot.exceeds_hotbar", slot))
 	}
 	clientSideItem := expected
 	actual, _ := s.inv.Item(slot)
@@ -742,7 +766,7 @@ func (s *Session) VerifySlot(slot int, expected item.Stack) error {
 		s.sendItem(actual, slot, protocol.WindowIDInventory)
 		// Only ever debug these as they are frequent and expected to happen
 		// whenever client and server get out of sync.
-		s.conf.Log.Debug("verify slot: client-side item was not equal to server-side item", "client-held", clientSideItem.String(), "server-held", actual.String())
+		s.conf.Log.Debug(i18n.R("%df.session.slot.verify_mismatch"), "client-held", clientSideItem.String(), "server-held", actual.String())
 	}
 	return nil
 }
@@ -1012,7 +1036,7 @@ func stacksToIngredientItems(_ world.BlockRegistry, inputs []recipe.Item) []prot
 			}
 			rid, meta, ok := world.ItemRuntimeID(i.Item())
 			if !ok {
-				panic("should never happen")
+				panic(i18n.R("%df.session.panic.should_never_happen"))
 			}
 			if _, ok = i.Value("variants"); ok {
 				meta = math.MaxInt16 // Used to indicate that the item has multiple selectable variants.
@@ -1069,7 +1093,7 @@ func deleteDamage(st protocol.ItemStack) protocol.ItemStack {
 // protocolToSkin converts protocol.Skin to skin.Skin.
 func protocolToSkin(sk protocol.Skin) (s skin.Skin, err error) {
 	if sk.SkinID == "" {
-		return skin.Skin{}, fmt.Errorf("SkinID must not be an empty string")
+		return skin.Skin{}, errors.New(i18n.R("%df.session.player.skin.empty_id"))
 	}
 
 	s = skin.New(int(sk.SkinImageWidth), int(sk.SkinImageHeight))
@@ -1084,11 +1108,11 @@ func protocolToSkin(sk protocol.Skin) (s skin.Skin, err error) {
 
 	m := make(map[string]any)
 	if err = json.Unmarshal(sk.SkinGeometry, &m); err != nil {
-		return skin.Skin{}, fmt.Errorf("SkinGeometry was not a valid JSON string: %v", err)
+		return skin.Skin{}, fmt.Errorf("%s: %w", i18n.R("%df.session.player.skin.invalid_geometry"), err)
 	}
 
 	if s.ModelConfig, err = skin.DecodeModelConfig(sk.SkinResourcePatch); err != nil {
-		return skin.Skin{}, fmt.Errorf("SkinResourcePatch was not a valid JSON string: %v", err)
+		return skin.Skin{}, fmt.Errorf("%s: %w", i18n.R("%df.session.player.skin.invalid_resource_patch"), err)
 	}
 
 	for _, anim := range sk.Animations {
@@ -1101,7 +1125,7 @@ func protocolToSkin(sk protocol.Skin) (s skin.Skin, err error) {
 		case protocol.SkinAnimationBody128x128:
 			t = skin.AnimationBody128x128
 		default:
-			return skin.Skin{}, fmt.Errorf("invalid animation type: %v", anim.AnimationType)
+			return skin.Skin{}, errors.New(i18n.R("%df.session.player.skin.invalid_animation_type", anim.AnimationType))
 		}
 
 		animation := skin.NewAnimation(int(anim.ImageWidth), int(anim.ImageHeight), int(anim.ExpressionType), t)
@@ -1205,7 +1229,7 @@ func debugShapeToProtocol(shape debug.Shape, dim world.Dimension, attachedEntity
 		}
 		ps.ExtraShapeData = textData
 	default:
-		panic(fmt.Sprintf("unknown debug shape type %T", shape))
+		panic(i18n.R("%df.session.unknown_debug_shape", fmt.Sprintf("%T", shape)))
 	}
 	return ps
 }

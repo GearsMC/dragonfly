@@ -1,7 +1,8 @@
 package session
 
 import (
-	"fmt"
+	"errors"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 )
@@ -14,13 +15,13 @@ func (TextHandler) Handle(p packet.Packet, s *Session, _ *world.Tx, c Controllab
 	pk := p.(*packet.Text)
 
 	if pk.TextType != packet.TextTypeChat {
-		return fmt.Errorf("TextType should always be Chat (%v), but got %v", packet.TextTypeChat, pk.TextType)
+		return errors.New(i18n.R("%df.session.handler.text.bad_type", packet.TextTypeChat, pk.TextType))
 	}
 	if pk.SourceName != s.conn.IdentityData().DisplayName {
-		return fmt.Errorf("SourceName must be equal to DisplayName")
+		return errors.New(i18n.R("%df.session.handler.text.source_name_mismatch"))
 	}
 	if pk.XUID != s.conn.IdentityData().XUID {
-		return fmt.Errorf("XUID must be equal to player's XUID")
+		return errors.New(i18n.R("%df.session.handler.text.xuid_mismatch"))
 	}
 	c.Chat(pk.Message)
 	return nil

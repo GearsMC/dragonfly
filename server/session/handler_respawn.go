@@ -1,7 +1,8 @@
 package session
 
 import (
-	"fmt"
+	"errors"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 )
@@ -16,7 +17,7 @@ func (*RespawnHandler) Handle(p packet.Packet, _ *Session, _ *world.Tx, c Contro
 		return errSelfRuntimeID
 	}
 	if pk.State != packet.RespawnStateClientReadyToSpawn {
-		return fmt.Errorf("respawn state must always be %v, but got %v", packet.RespawnStateClientReadyToSpawn, pk.State)
+		return errors.New(i18n.R("%df.session.handler.respawn.bad_state", packet.RespawnStateClientReadyToSpawn, pk.State))
 	}
 	c.Respawn()
 	return nil

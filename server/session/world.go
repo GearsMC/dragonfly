@@ -2,7 +2,6 @@ package session
 
 import (
 	"bytes"
-	"fmt"
 	"image/color"
 	"math/rand/v2"
 	"strings"
@@ -12,6 +11,7 @@ import (
 	"github.com/df-mc/dragonfly/server/block/cube"
 	"github.com/df-mc/dragonfly/server/entity"
 	"github.com/df-mc/dragonfly/server/entity/effect"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/internal/nbtconv"
 	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/item/inventory"
@@ -763,7 +763,7 @@ func (s *Session) playSound(pos mgl64.Vec3, t world.Sound, disableRelative bool)
 				pk.SoundType = packet.SoundEventCrossbowQuickChargeEnd
 			}
 		default:
-			panic("invalid crossbow loading stage")
+			panic(i18n.R("%df.session.world.panic.invalid_crossbow_stage"))
 		}
 	case sound.CrossbowShoot:
 		pk.SoundType = packet.SoundEventCrossbowShoot
@@ -824,7 +824,7 @@ func (s *Session) playSound(pos mgl64.Vec3, t world.Sound, disableRelative bool)
 		case sound.DiscLavaChicken():
 			pk.SoundType = packet.SoundEventRecordLavaChicken
 		default:
-			panic(fmt.Errorf("disc (%v) does not have sound", so.DiscType.String()))
+			panic(i18n.R("%df.session.world.panic.disc_no_sound", so.DiscType.String()))
 		}
 	case sound.MusicDiscEnd:
 		pk.SoundType = packet.SoundEventRecordNull
@@ -1390,7 +1390,7 @@ func (s *Session) handleRuntimeID(e *world.EntityHandle) uint64 {
 	if id, ok := s.entityRuntimeIDs[e]; ok {
 		return id
 	}
-	s.conf.Log.Debug("entity runtime ID not found", "UUID", e.UUID().String())
+	s.conf.Log.Debug(i18n.R("%df.session.entity.runtime_id_not_found"), "UUID", e.UUID().String())
 	return 0
 }
 

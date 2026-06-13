@@ -1,7 +1,8 @@
 package session
 
 import (
-	"fmt"
+	"errors"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
@@ -16,19 +17,19 @@ func (b BookEditHandler) Handle(p packet.Packet, s *Session, _ *world.Tx, _ Cont
 
 	it, err := s.inv.Item(int(pk.InventorySlot))
 	if err != nil {
-		return fmt.Errorf("invalid inventory slot index %v", pk.InventorySlot)
+		return errors.New(i18n.R("%df.session.handler.book_edit.invalid_slot", pk.InventorySlot))
 	}
 	book, ok := it.Item().(item.BookAndQuill)
 	if !ok {
-		return fmt.Errorf("inventory slot %v does not contain a writable book", pk.InventorySlot)
+		return errors.New(i18n.R("%df.session.handler.book_edit.not_writable_book", pk.InventorySlot))
 	}
 
 	page := int(pk.PageNumber)
 	if page >= 50 || page < 0 {
-		return fmt.Errorf("page number %v is out of bounds", pk.PageNumber)
+		return errors.New(i18n.R("%df.session.handler.book_edit.page_out_of_bounds", pk.PageNumber))
 	}
 	if len(pk.Text) > 256 {
-		return fmt.Errorf("text can not be longer than 256 bytes")
+		return errors.New(i18n.R("%df.session.handler.book_edit.text_too_long"))
 	}
 
 	slot := int(pk.InventorySlot)
@@ -37,14 +38,14 @@ func (b BookEditHandler) Handle(p packet.Packet, s *Session, _ *world.Tx, _ Cont
 		book = book.SetPage(page, pk.Text)
 	case packet.BookActionAddPage:
 		if len(book.Pages) >= 50 {
-			return fmt.Errorf("unable to add page beyond 50")
+			return errors.New(i18n.R("%df.session.handler.book_edit.page_limit"))
 		}
 		if page >= len(book.Pages) && page <= len(book.Pages)+2 {
 			book = book.SetPage(page, "")
 			break
 		}
 		if _, ok := book.Page(page); !ok {
-			return fmt.Errorf("unable to insert page at %v", pk.PageNumber)
+			return errors.New(i18n.R("%df.session.handler.book_edit.insert_page", pk.PageNumber))
 		}
 		book = book.InsertPage(page, pk.Text)
 	case packet.BookActionDeletePage:
@@ -56,7 +57,7 @@ func (b BookEditHandler) Handle(p packet.Packet, s *Session, _ *world.Tx, _ Cont
 		book = book.DeletePage(page)
 	case packet.BookActionSwapPages:
 		if pk.SecondaryPageNumber >= 50 {
-			return fmt.Errorf("page number out of bounds")
+			return errors.New(i18n.R("%df.session.handler.book_edit.swap_out_of_bounds"))
 		}
 		_, ok := book.Page(page)
 		_, ok2 := book.Page(int(pk.SecondaryPageNumber))

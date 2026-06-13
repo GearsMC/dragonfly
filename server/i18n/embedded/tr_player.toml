@@ -1,0 +1,56 @@
+# Dragonfly oyuncu paketi Türkçe çevirileri
+# player, playerdb, scoreboard, dialogue, form ve inventory paketlerinin
+# ürettiği runtime hata/panic/log mesajları. Anahtarlar mesajı üreten pakete
+# göre gruplanmıştır.
+
+# server/player/player.go
+"%df.player.error.held_slot_range" = "tutulan slot hotbar aralığı 0-8 dışında: slot %v"
+"%df.player.error.edit_sign_no_sign" = "tabela düzenlenemedi: %v konumunda tabela yok"
+"%df.player.error.edit_lectern_no_lectern" = "kürsü düzenlenemedi: %v konumunda kürsü yok"
+"%df.player.error.action_cancelled" = "eylem iptal edildi"
+
+# server/player/playerdb/*
+"%df.playerdb.error.empty_xuid" = "xuid boş olamaz"
+"%df.playerdb.error.identity_empty_xuid" = "kimlik xuid boş olamaz"
+"%df.playerdb.error.unknown_dimension_id" = "bilinmeyen oyuncu dimension kimliği: %d"
+"%df.playerdb.error.legacy_world_dimension" = "eski oyuncu dünyası dimension %d içinde çözümlenemedi"
+"%df.playerdb.error.world_dimension_resolve" = "oyuncu dünyası %q dimension %d içinde çözümlenemedi"
+
+# server/player/scoreboard/scoreboard.go
+"%df.scoreboard.error.max_lines" = "skor tablosuna yazılamadı: en fazla 15 satır metin sınırı aşıldı"
+"%df.scoreboard.panic.index_out_of_range" = "aralık dışı indeks: %v"
+
+# server/player/dialogue/dialogue.go
+"%df.dialogue.panic.submittable_struct" = "submittable struct tipinde olmalı"
+"%df.dialogue.error.button_index_invalid" = "buton indeksi var olmayan bir butona işaret ediyor: %v (yalnızca %v buton mevcut)"
+"%df.dialogue.panic.exported_fields_button" = "dışa aktarılan tüm alanlar dialogue.Button tipinde olmalı"
+"%df.dialogue.panic.max_buttons" = "en fazla 6 butona izin verilir"
+
+# server/player/form/*
+# %df.form.panic.submittable_struct Custom, Menu ve Modal için ortaktır.
+"%df.form.panic.submittable_struct" = "submittable struct tipinde olmalı"
+# Aşağıdaki hatalar %w ile sarıldığı için çeviri değeri sarılan hatayı temsil
+# eden bir placeholder İÇERMEMELİDİR.
+"%df.form.error.decode_json_slice" = "JSON verisi dilime çözümlenemedi"
+"%df.form.error.json_not_enough_values" = "form JSON veri dizisi yeterli sayıda değer içermiyor"
+"%df.form.error.parse_response" = "form yanıt değeri ayrıştırılamadı"
+"%df.form.error.parse_json_bool" = "JSON bool olarak ayrıştırılamadı"
+"%df.form.error.parse_button_index" = "buton indeksi int olarak ayrıştırılamadı"
+"%df.form.error.value_input" = "%v değeri input elemanı için geçerli değil"
+"%df.form.error.value_not_utf8" = "%v değeri geçerli UTF8 değil"
+"%df.form.error.value_toggle" = "%v değeri toggle elemanı için geçerli değil"
+"%df.form.error.value_slider" = "%v değeri slider elemanı için geçerli değil"
+"%df.form.error.slider_out_of_range" = "slider değeri %v aralık dışında %v-%v"
+"%df.form.error.value_dropdown" = "%v değeri dropdown elemanı için geçerli değil"
+"%df.form.error.dropdown_out_of_range" = "dropdown değeri %v aralık dışında %v-%v"
+"%df.form.error.button_index_invalid" = "buton indeksi var olmayan bir butona işaret ediyor: %v (yalnızca %v buton mevcut)"
+"%df.form.panic.exported_fields_element" = "dışa aktarılan tüm alanlar form.Element arayüzünü uygulamalı"
+"%df.form.panic.exported_fields_menu_element" = "dışa aktarılan tüm alanlar form.MenuElement arayüzünü uygulamalı"
+"%df.form.panic.exported_fields_button_modal" = "dışa aktarılan iki alan da form.Button tipinde olmalı"
+"%df.form.panic.modal_two_buttons" = "modal formda tam olarak iki form.Button dışa aktarılmış alanı olmalı"
+
+# server/item/inventory/inventory.go
+"%df.inventory.panic.size_at_least_1" = "envanter boyutu en az 1 olmalı"
+"%df.inventory.error.add_full_stack" = "eksiksiz öğe yığını envantere eklenemedi"
+"%df.inventory.error.remove_all_items" = "envanterdeki tüm öğeler kaldırılamadı"
+"%df.inventory.panic.uninitialised" = "başlatılmamış envanter: envanter inventory.New() ile oluşturulmalı"

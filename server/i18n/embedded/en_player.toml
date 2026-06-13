@@ -1,0 +1,56 @@
+# Dragonfly player package English translations
+# Runtime error/panic/log messages emitted by the player, playerdb, scoreboard,
+# dialogue, form and inventory packages. Keys are grouped by the package that
+# raises the message.
+
+# server/player/player.go
+"%df.player.error.held_slot_range" = "held slot exceeds hotbar range 0-8: slot is %v"
+"%df.player.error.edit_sign_no_sign" = "edit sign: no sign at position %v"
+"%df.player.error.edit_lectern_no_lectern" = "edit lectern: no lectern at position %v"
+"%df.player.error.action_cancelled" = "action was cancelled"
+
+# server/player/playerdb/*
+"%df.playerdb.error.empty_xuid" = "xuid cannot be empty"
+"%df.playerdb.error.identity_empty_xuid" = "identity xuid cannot be empty"
+"%df.playerdb.error.unknown_dimension_id" = "unknown player dimension id: %d"
+"%df.playerdb.error.legacy_world_dimension" = "legacy player world could not be resolved in dimension %d"
+"%df.playerdb.error.world_dimension_resolve" = "player world %q could not be resolved in dimension %d"
+
+# server/player/scoreboard/scoreboard.go
+"%df.scoreboard.error.max_lines" = "write scoreboard: maximum of 15 lines of text exceeded"
+"%df.scoreboard.panic.index_out_of_range" = "index out of range %v"
+
+# server/player/dialogue/dialogue.go
+"%df.dialogue.panic.submittable_struct" = "submittable must be struct"
+"%df.dialogue.error.button_index_invalid" = "button index points to inexistent button: %v (only %v buttons present)"
+"%df.dialogue.panic.exported_fields_button" = "all exported fields must be of the type dialogue.Button"
+"%df.dialogue.panic.max_buttons" = "maximum of 6 buttons allowed"
+
+# server/player/form/*
+# %df.form.panic.submittable_struct is shared by Custom, Menu and Modal.
+"%df.form.panic.submittable_struct" = "submittable must be struct"
+# Errors below this line are wrapped with %w, so the translation value must
+# NOT contain a placeholder for the wrapped error.
+"%df.form.error.decode_json_slice" = "error decoding JSON data to slice"
+"%df.form.error.json_not_enough_values" = "form JSON data array does not have enough values"
+"%df.form.error.parse_response" = "error parsing form response value"
+"%df.form.error.parse_json_bool" = "error parsing JSON as bool"
+"%df.form.error.parse_button_index" = "cannot parse button index as int"
+"%df.form.error.value_input" = "value %v is not allowed for input element"
+"%df.form.error.value_not_utf8" = "value %v is not valid UTF8"
+"%df.form.error.value_toggle" = "value %v is not allowed for toggle element"
+"%df.form.error.value_slider" = "value %v is not allowed for slider element"
+"%df.form.error.slider_out_of_range" = "slider value %v is out of range %v-%v"
+"%df.form.error.value_dropdown" = "value %v is not allowed for dropdown element"
+"%df.form.error.dropdown_out_of_range" = "dropdown value %v is out of range %v-%v"
+"%df.form.error.button_index_invalid" = "button index points to inexistent button: %v (only %v buttons present)"
+"%df.form.panic.exported_fields_element" = "all exported fields must implement form.Element interface"
+"%df.form.panic.exported_fields_menu_element" = "all exported fields must implement form.MenuElement"
+"%df.form.panic.exported_fields_button_modal" = "both exported fields must be of the type form.Button"
+"%df.form.panic.modal_two_buttons" = "modal form must have exactly two exported fields of the type form.Button"
+
+# server/item/inventory/inventory.go
+"%df.inventory.panic.size_at_least_1" = "inventory size must be at least 1"
+"%df.inventory.error.add_full_stack" = "could not add full item stack to inventory"
+"%df.inventory.error.remove_all_items" = "could not remove all items from the inventory"
+"%df.inventory.panic.uninitialised" = "uninitialised inventory: inventory must be constructed using inventory.New()"

@@ -1,7 +1,8 @@
 package session
 
 import (
-	"fmt"
+	"errors"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
@@ -16,7 +17,7 @@ type CommandRequestHandler struct {
 func (h *CommandRequestHandler) Handle(p packet.Packet, _ *Session, _ *world.Tx, c Controllable) error {
 	pk := p.(*packet.CommandRequest)
 	if pk.Internal {
-		return fmt.Errorf("command request packet must never have the internal field set to true")
+		return errors.New(i18n.R("%df.session.handler.command_request.internal_set"))
 	}
 
 	h.origin = pk.CommandOrigin

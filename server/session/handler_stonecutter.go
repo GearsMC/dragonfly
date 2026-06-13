@@ -1,7 +1,8 @@
 package session
 
 import (
-	"fmt"
+	"errors"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/item/recipe"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
@@ -14,18 +15,18 @@ const stonecutterInputSlot = 0x03
 func (h *ItemStackRequestHandler) handleStonecutting(a *protocol.CraftRecipeStackRequestAction, s *Session, tx *world.Tx) error {
 	craft, ok := s.recipes[a.RecipeNetworkID]
 	if !ok {
-		return fmt.Errorf("recipe with network id %v does not exist", a.RecipeNetworkID)
+		return errors.New(i18n.R("%df.session.handler.stonecutter.recipe_not_found", a.RecipeNetworkID))
 	}
 	if _, shapeless := craft.(recipe.Shapeless); !shapeless {
-		return fmt.Errorf("recipe with network id %v is not a shapeless recipe", a.RecipeNetworkID)
+		return errors.New(i18n.R("%df.session.handler.stonecutter.not_shapeless", a.RecipeNetworkID))
 	}
 	if craft.Block() != "stonecutter" {
-		return fmt.Errorf("recipe with network id %v is not a stonecutter recipe", a.RecipeNetworkID)
+		return errors.New(i18n.R("%df.session.handler.stonecutter.not_stonecutter", a.RecipeNetworkID))
 	}
 
 	timesCrafted := int(a.NumberOfCrafts)
 	if timesCrafted < 1 {
-		return fmt.Errorf("times crafted must be at least 1")
+		return errors.New(i18n.R("%df.session.handler.stonecutter.times_crafted_min"))
 	}
 
 	expectedInputs := craft.Input()
@@ -34,10 +35,10 @@ func (h *ItemStackRequestHandler) handleStonecutting(a *protocol.CraftRecipeStac
 		Slot:      stonecutterInputSlot,
 	}, s, tx)
 	if input.Count() < timesCrafted {
-		return fmt.Errorf("input item count is less than number of crafts")
+		return errors.New(i18n.R("%df.session.handler.stonecutter.input_count_low"))
 	}
 	if !matchingStacks(input, expectedInputs[0]) {
-		return fmt.Errorf("input item is not the same as expected input")
+		return errors.New(i18n.R("%df.session.handler.stonecutter.input_mismatch"))
 	}
 
 	output := craft.Output()

@@ -13,6 +13,7 @@ import (
 
 	"github.com/df-mc/dragonfly/server/block/cube"
 	"github.com/df-mc/dragonfly/server/cmd"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/item/inventory"
 	"github.com/df-mc/dragonfly/server/item/recipe"
 	"github.com/df-mc/dragonfly/server/player/chat"
@@ -155,7 +156,7 @@ const selfEntityRuntimeID = 1
 
 // errSelfRuntimeID is an error returned during packet handling for fields that refer to the player itself and
 // must therefore always be 1.
-var errSelfRuntimeID = errors.New("invalid entity runtime ID: runtime ID for self must always be 1")
+var errSelfRuntimeID = errors.New(i18n.R("%df.session.err_self_runtime_id"))
 
 type Config struct {
 	Log *slog.Logger
@@ -384,7 +385,7 @@ func (s *Session) handlePackets() {
 			err = s.handlePacket(pk, tx, e.(Controllable))
 		})
 		if err != nil {
-			s.conf.Log.Debug("process packet: " + err.Error())
+			s.conf.Log.Debug(i18n.R("%df.session.packet.process", err))
 			return
 		}
 	}
@@ -534,7 +535,7 @@ func (s *Session) ChunkRadius() int32 {
 func (s *Session) handlePacket(pk packet.Packet, tx *world.Tx, c Controllable) (err error) {
 	handler, ok := s.handlers[pk.ID()]
 	if !ok {
-		s.conf.Log.Debug("unhandled packet", "packet", fmt.Sprintf("%T", pk), "data", fmt.Sprintf("%+v", pk)[1:])
+		s.conf.Log.Debug(i18n.R("%df.session.packet.unhandled"), "packet", fmt.Sprintf("%T", pk), "data", fmt.Sprintf("%+v", pk)[1:])
 		return nil
 	}
 	if handler == nil {
@@ -542,7 +543,7 @@ func (s *Session) handlePacket(pk packet.Packet, tx *world.Tx, c Controllable) (
 		return nil
 	}
 	if err := handler.Handle(pk, s, tx, c); err != nil {
-		return fmt.Errorf("%T: %w", pk, err)
+		return fmt.Errorf("%s: %w", i18n.R("%df.session.packet.handle", fmt.Sprintf("%T", pk)), err)
 	}
 	return nil
 }
@@ -611,7 +612,7 @@ func (s *Session) sendAvailableEntities(w *world.World) {
 	}
 	serialisedEntityData, err := nbt.Marshal(map[string]any{"idlist": identifiers})
 	if err != nil {
-		panic("should never happen")
+		panic(i18n.R("%df.session.panic.should_never_happen"))
 	}
 	s.writePacket(&packet.AvailableActorIdentifiers{SerialisedEntityIdentifiers: serialisedEntityData})
 }

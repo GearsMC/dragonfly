@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/df-mc/dragonfly/server/world/mcdb/leveldat"
 	"github.com/df-mc/goleveldb/leveldb"
@@ -52,20 +53,20 @@ func (conf Config) Open(dir string) (*DB, error) {
 	} else {
 		ldat, err := leveldat.ReadFile(filepath.Join(dir, "level.dat"))
 		if err != nil {
-			return nil, fmt.Errorf("open db: read level.dat: %w", err)
+			return nil, fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.open_read_leveldat"), err)
 		}
 		ver := ldat.Ver()
 		if ver != leveldat.Version && ver >= 10 {
-			return nil, fmt.Errorf("open db: level.dat version %v is unsupported", ver)
+			return nil, fmt.Errorf("%s", i18n.R("%df.world.mcdb.open_unsupported_version", ver))
 		}
 		if err = ldat.Unmarshal(db.ldat); err != nil {
-			return nil, fmt.Errorf("open db: unmarshal level.dat: %w", err)
+			return nil, fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.open_unmarshal"), err)
 		}
 	}
 	db.set = db.ldat.Settings()
 	ldb, err := leveldb.OpenFile(filepath.Join(dir, "db"), conf.LDBOptions)
 	if err != nil {
-		return nil, fmt.Errorf("open db: leveldb: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.open_leveldb"), err)
 	}
 	db.ldb = ldb
 	return db, nil

@@ -1,10 +1,12 @@
 package session
 
 import (
+	"errors"
 	"fmt"
 	"github.com/df-mc/dragonfly/server/block"
 	"github.com/df-mc/dragonfly/server/entity"
 	"github.com/df-mc/dragonfly/server/event"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/item/inventory"
 	"github.com/df-mc/dragonfly/server/world"
@@ -54,7 +56,7 @@ func (h *ItemStackRequestHandler) Handle(p packet.Packet, s *Session, tx *world.
 		if err := h.handleRequest(req, s, tx, c); err != nil {
 			// Item stacks being out of sync isn't uncommon, so don't error. Just debug the error and let the
 			// revert do its work.
-			s.conf.Log.Debug("process packet: ItemStackRequest: resolve item stack request: " + err.Error())
+			s.conf.Log.Debug(i18n.R("%df.session.handler.item_stack_request.resolve", err))
 		}
 	}
 	return nil
@@ -120,10 +122,10 @@ func (h *ItemStackRequestHandler) handleRequest(req protocol.ItemStackRequest, s
 		case *protocol.ConsumeStackRequestAction, *protocol.CraftResultsDeprecatedStackRequestAction:
 			// Don't do anything with this.
 		default:
-			return fmt.Errorf("unhandled stack request action %#v", action)
+			return fmt.Errorf("%s", i18n.R("%df.session.handler.item_stack_request.unhandled_action", fmt.Sprintf("%#v", action)))
 		}
 		if err != nil {
-			err = fmt.Errorf("%T: %w", action, err)
+			err = fmt.Errorf("%s: %w", i18n.R("%df.session.handler.item_stack_request.action", fmt.Sprintf("%T", action)), err)
 			return
 		}
 	}
@@ -143,18 +145,18 @@ func (h *ItemStackRequestHandler) handlePlace(a *protocol.PlaceStackRequestActio
 // handleTransfer handles the transferring of x count from a source slot to a destination slot.
 func (h *ItemStackRequestHandler) handleTransfer(from, to protocol.StackRequestSlotInfo, count byte, s *Session, tx *world.Tx, c Controllable) error {
 	if err := h.verifySlots(s, tx, from, to); err != nil {
-		return fmt.Errorf("source slot out of sync: %w", err)
+		return fmt.Errorf("%s: %w", i18n.R("%df.session.handler.item_stack_request.source_out_of_sync"), err)
 	}
 	i, _ := h.itemInSlot(from, s, tx)
 	dest, _ := h.itemInSlot(to, s, tx)
 	if !i.Comparable(dest) {
-		return fmt.Errorf("client tried transferring %v to %v, but the stacks are incomparable", i, dest)
+		return errors.New(i18n.R("%df.session.handler.item_stack_request.incomparable", i, dest))
 	}
 	if i.Count() < int(count) {
-		return fmt.Errorf("client tried subtracting %v from item count, but there are only %v", count, i.Count())
+		return errors.New(i18n.R("%df.session.handler.item_stack_request.subtract_more", count, i.Count()))
 	}
 	if (dest.Count()+int(count) > dest.MaxCount()) && !dest.Empty() {
-		return fmt.Errorf("client tried adding %v to item count %v, but max is %v", count, dest.Count(), dest.MaxCount())
+		return errors.New(i18n.R("%df.session.handler.item_stack_request.exceeds_max", count, dest.Count(), dest.MaxCount()))
 	}
 	if dest.Empty() {
 		dest = i.Grow(-math.MaxInt32)
@@ -179,7 +181,7 @@ func (h *ItemStackRequestHandler) handleTransfer(from, to protocol.StackRequestS
 // handleSwap handles a Swap stack request action.
 func (h *ItemStackRequestHandler) handleSwap(a *protocol.SwapStackRequestAction, s *Session, tx *world.Tx, c Controllable) error {
 	if err := h.verifySlots(s, tx, a.Source, a.Destination); err != nil {
-		return fmt.Errorf("slot out of sync: %w", err)
+		return fmt.Errorf("%s: %w", i18n.R("%df.session.handler.item_stack_request.slot_out_of_sync"), err)
 	}
 	i, _ := h.itemInSlot(a.Source, s, tx)
 	dest, _ := h.itemInSlot(a.Destination, s, tx)
@@ -221,14 +223,14 @@ func (h *ItemStackRequestHandler) handleDestroy(a *protocol.DestroyStackRequestA
 		return nil
 	}
 	if !c.GameMode().CreativeInventory() {
-		return fmt.Errorf("can only destroy items in gamemode creative/spectator")
+		return errors.New(i18n.R("%df.session.handler.item_stack_request.destroy_creative"))
 	}
 	if err := h.verifySlot(a.Source, s, tx); err != nil {
-		return fmt.Errorf("source slot out of sync: %w", err)
+		return fmt.Errorf("%s: %w", i18n.R("%df.session.handler.item_stack_request.source_out_of_sync"), err)
 	}
 	i, _ := h.itemInSlot(a.Source, s, tx)
 	if i.Count() < int(a.Count) {
-		return fmt.Errorf("client attempted to destroy %v items, but only %v present", a.Count, i.Count())
+		return errors.New(i18n.R("%df.session.handler.item_stack_request.destroy_more", a.Count, i.Count()))
 	}
 
 	h.setItemInSlot(a.Source, i.Grow(-int(a.Count)), s, tx)
@@ -239,11 +241,11 @@ func (h *ItemStackRequestHandler) handleDestroy(a *protocol.DestroyStackRequestA
 // inventory opened.
 func (h *ItemStackRequestHandler) handleDrop(a *protocol.DropStackRequestAction, s *Session, tx *world.Tx, c Controllable) error {
 	if err := h.verifySlot(a.Source, s, tx); err != nil {
-		return fmt.Errorf("source slot out of sync: %w", err)
+		return fmt.Errorf("%s: %w", i18n.R("%df.session.handler.item_stack_request.source_out_of_sync"), err)
 	}
 	i, _ := h.itemInSlot(a.Source, s, tx)
 	if i.Count() < int(a.Count) {
-		return fmt.Errorf("client attempted to drop %v items, but only %v present", a.Count, i.Count())
+		return errors.New(i18n.R("%df.session.handler.item_stack_request.drop_more", a.Count, i.Count()))
 	}
 
 	inv, _ := s.invByID(int32(a.Source.Container.ContainerID), tx)
@@ -280,12 +282,12 @@ func (h *ItemStackRequestHandler) handleMineBlock(a *protocol.MineBlockStackRequ
 func (h *ItemStackRequestHandler) handleCreate(a *protocol.CreateStackRequestAction, s *Session, tx *world.Tx) error {
 	slot := int(a.ResultsSlot)
 	if len(h.pendingResults) < slot {
-		return fmt.Errorf("invalid pending result slot: %v", a.ResultsSlot)
+		return errors.New(i18n.R("%df.session.handler.item_stack_request.invalid_result_slot", a.ResultsSlot))
 	}
 
 	res := h.pendingResults[slot]
 	if res.Empty() {
-		return fmt.Errorf("tried duplicating created result: %v", slot)
+		return errors.New(i18n.R("%df.session.handler.item_stack_request.duplicate_result", slot))
 	}
 	h.pendingResults[slot] = item.Stack{}
 
@@ -325,7 +327,7 @@ func (h *ItemStackRequestHandler) verifySlot(slot protocol.StackRequestSlotInfo,
 		return err
 	}
 	if len(h.responseChanges) > 256 {
-		return fmt.Errorf("too many unacknowledged request slot changes")
+		return errors.New(i18n.R("%df.session.handler.item_stack_request.too_many_unack"))
 	}
 	inv, _ := s.invByID(int32(slot.Container.ContainerID), tx)
 
@@ -340,7 +342,7 @@ func (h *ItemStackRequestHandler) verifySlot(slot protocol.StackRequestSlotInfo,
 	// The client seems to send negative stack network IDs for predictions, which we can ignore. We'll simply
 	// override this network ID later.
 	if id := item_id(i); id != clientID {
-		return fmt.Errorf("stack ID mismatch: client expected %v, but server had %v", clientID, id)
+		return errors.New(i18n.R("%df.session.handler.item_stack_request.id_mismatch", clientID, id))
 	}
 	return nil
 }
@@ -354,15 +356,15 @@ func (h *ItemStackRequestHandler) resolveID(inv *inventory.Inventory, slot proto
 	}
 	containerChanges, ok := h.responseChanges[slot.StackNetworkID]
 	if !ok {
-		return 0, fmt.Errorf("slot pointed to stack request %v, but request could not be found", slot.StackNetworkID)
+		return 0, errors.New(i18n.R("%df.session.handler.item_stack_request.request_not_found", slot.StackNetworkID))
 	}
 	changes, ok := containerChanges[inv]
 	if !ok {
-		return 0, fmt.Errorf("slot pointed to stack request %v with container %v, but that container was not changed in the request", slot.StackNetworkID, slot.Container.ContainerID)
+		return 0, errors.New(i18n.R("%df.session.handler.item_stack_request.container_not_changed", slot.StackNetworkID, slot.Container.ContainerID))
 	}
 	actual, ok := changes[slot.Slot]
 	if !ok {
-		return 0, fmt.Errorf("slot pointed to stack request %v with container %v and slot %v, but that slot was not changed in the request", slot.StackNetworkID, slot.Container.ContainerID, slot.Slot)
+		return 0, errors.New(i18n.R("%df.session.handler.item_stack_request.slot_not_changed", slot.StackNetworkID, slot.Container.ContainerID, slot.Slot))
 	}
 	return actual.id, nil
 }
@@ -373,7 +375,7 @@ func (h *ItemStackRequestHandler) resolveID(inv *inventory.Inventory, slot proto
 func (h *ItemStackRequestHandler) tryAcknowledgeChanges(s *Session, tx *world.Tx, slot protocol.StackRequestSlotInfo) error {
 	inv, ok := s.invByID(int32(slot.Container.ContainerID), tx)
 	if !ok {
-		return fmt.Errorf("could not find container with id %v", slot.Container.ContainerID)
+		return errors.New(i18n.R("%df.session.handler.item_stack_request.container_not_found", slot.Container.ContainerID))
 	}
 
 	for requestID, containerChanges := range h.responseChanges {
@@ -398,7 +400,7 @@ func (h *ItemStackRequestHandler) tryAcknowledgeChanges(s *Session, tx *world.Tx
 func (h *ItemStackRequestHandler) itemInSlot(slot protocol.StackRequestSlotInfo, s *Session, tx *world.Tx) (item.Stack, error) {
 	inv, ok := s.invByID(int32(slot.Container.ContainerID), tx)
 	if !ok {
-		return item.Stack{}, fmt.Errorf("unable to find container with ID %v", slot.Container.ContainerID)
+		return item.Stack{}, errors.New(i18n.R("%df.session.handler.item_stack_request.container_unable", slot.Container.ContainerID))
 	}
 
 	sl := int(slot.Slot)
@@ -501,11 +503,11 @@ func (h *ItemStackRequestHandler) reject(id int32, s *Session, tx *world.Tx) {
 // the event.Context was cancelled either before or after the call.
 func call(ctx *inventory.Context, slot int, it item.Stack, f func(ctx *inventory.Context, slot int, it item.Stack)) error {
 	if ctx.Cancelled() {
-		return fmt.Errorf("action was cancelled")
+		return errors.New(i18n.R("%df.session.handler.item_stack_request.action_cancelled"))
 	}
 	f(ctx, slot, it)
 	if ctx.Cancelled() {
-		return fmt.Errorf("action was cancelled")
+		return errors.New(i18n.R("%df.session.handler.item_stack_request.action_cancelled"))
 	}
 	return nil
 }

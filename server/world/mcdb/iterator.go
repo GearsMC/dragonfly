@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/df-mc/dragonfly/server/world/chunk"
 	"github.com/df-mc/goleveldb/leveldb/iterator"
@@ -60,7 +61,7 @@ func (iter *ColumnIterator) Next() bool {
 		var ok bool
 		id := int(binary.LittleEndian.Uint32(k[8:12]))
 		if iter.dim, ok = world.DimensionByID(id); !ok {
-			iter.err = fmt.Errorf("unknown dimension id %v", id)
+			iter.err = fmt.Errorf("%s", i18n.R("%df.world.mcdb.unknown_dim_id", id))
 			return false
 		}
 	}
@@ -79,7 +80,7 @@ func (iter *ColumnIterator) Next() bool {
 	}
 	iter.current, iter.err = iter.db.LoadColumn(iter.pos, iter.dim)
 	if iter.err != nil {
-		iter.err = fmt.Errorf("load chunk %v: %w", iter.pos, iter.err)
+		iter.err = fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.iterator_load_chunk", iter.pos), iter.err)
 		return false
 	}
 	iter.seen[key] = struct{}{}

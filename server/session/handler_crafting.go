@@ -1,7 +1,9 @@
 package session
 
 import (
+	"errors"
 	"fmt"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/item/creative"
 	"github.com/df-mc/dragonfly/server/item/inventory"
@@ -22,15 +24,15 @@ func (h *ItemStackRequestHandler) handleCraft(a *protocol.CraftRecipeStackReques
 	_, shaped := craft.(recipe.Shaped)
 	_, shapeless := craft.(recipe.Shapeless)
 	if !shaped && !shapeless {
-		return fmt.Errorf("recipe with network id %v is not a shaped or shapeless recipe", a.RecipeNetworkID)
+		return errors.New(i18n.R("%df.session.handler.crafting.not_shaped_or_shapeless", a.RecipeNetworkID))
 	}
 	if craft.Block() != "crafting_table" {
-		return fmt.Errorf("recipe with network id %v is not a crafting table recipe", a.RecipeNetworkID)
+		return errors.New(i18n.R("%df.session.handler.crafting.not_crafting_table", a.RecipeNetworkID))
 	}
 
 	timesCrafted := int(a.NumberOfCrafts)
 	if timesCrafted < 1 {
-		return fmt.Errorf("times crafted must be at least 1")
+		return errors.New(i18n.R("%df.session.handler.crafting.times_crafted_min"))
 	}
 
 	size := s.craftingSize()
@@ -61,7 +63,7 @@ func (h *ItemStackRequestHandler) handleCraft(a *protocol.CraftRecipeStackReques
 			break
 		}
 		if !processed {
-			return fmt.Errorf("recipe %v: could not consume expected item: %v", a.RecipeNetworkID, expected)
+			return fmt.Errorf("%s", i18n.R("%df.session.handler.crafting.could_not_consume", a.RecipeNetworkID, expected))
 		}
 	}
 	return h.createResults(s, tx, repeatStacks(craft.Output(), timesCrafted)...)
@@ -77,15 +79,15 @@ func (h *ItemStackRequestHandler) handleAutoCraft(a *protocol.AutoCraftRecipeSta
 	_, shaped := craft.(recipe.Shaped)
 	_, shapeless := craft.(recipe.Shapeless)
 	if !shaped && !shapeless {
-		return fmt.Errorf("recipe with network id %v is not a shaped or shapeless recipe", a.RecipeNetworkID)
+		return errors.New(i18n.R("%df.session.handler.crafting.not_shaped_or_shapeless", a.RecipeNetworkID))
 	}
 	if craft.Block() != "crafting_table" {
-		return fmt.Errorf("recipe with network id %v is not a crafting table recipe", a.RecipeNetworkID)
+		return errors.New(i18n.R("%df.session.handler.crafting.not_crafting_table", a.RecipeNetworkID))
 	}
 
 	timesCrafted := int(a.TimesCrafted)
 	if timesCrafted < 1 {
-		return fmt.Errorf("times crafted must be at least 1")
+		return errors.New(i18n.R("%df.session.handler.crafting.times_crafted_min"))
 	}
 
 	flattenedInputs := make([]recipe.Item, 0, len(craft.Input()))
@@ -143,7 +145,7 @@ func (h *ItemStackRequestHandler) handleAutoCraft(a *protocol.AutoCraftRecipeSta
 			}
 		}
 		if remaining != 0 {
-			return fmt.Errorf("recipe %v: could not consume expected item: %v", a.RecipeNetworkID, expected)
+			return fmt.Errorf("%s", i18n.R("%df.session.handler.crafting.could_not_consume", a.RecipeNetworkID, expected))
 		}
 	}
 
@@ -153,11 +155,11 @@ func (h *ItemStackRequestHandler) handleAutoCraft(a *protocol.AutoCraftRecipeSta
 // handleCreativeCraft handles the CreativeCraft request action.
 func (h *ItemStackRequestHandler) handleCreativeCraft(a *protocol.CraftCreativeStackRequestAction, s *Session, tx *world.Tx, c Controllable) error {
 	if !c.GameMode().CreativeInventory() {
-		return fmt.Errorf("can only craft creative items in gamemode creative/spectator")
+		return errors.New(i18n.R("%df.session.handler.crafting.creative_only"))
 	}
 	index := a.CreativeItemNetworkID - 1
 	if int(index) >= len(creative.Items()) {
-		return fmt.Errorf("creative item with network ID %v does not exist", index)
+		return errors.New(i18n.R("%df.session.handler.crafting.creative_item_missing", index))
 	}
 	it := creative.Items()[index].Stack
 	it = it.Grow(it.MaxCount() - 1)
@@ -197,7 +199,7 @@ func matchingStacks(has, expected recipe.Item) bool {
 			nameTwo, _ := expected.Item().EncodeItem()
 			return nameOne == nameTwo
 		}
-		panic(fmt.Errorf("client has unexpected recipe item %T", has))
+		panic(i18n.R("%df.session.handler.crafting.unexpected_has", fmt.Sprintf("%T", has)))
 	case recipe.ItemTag:
 		switch has := has.(type) {
 		case item.Stack:
@@ -206,9 +208,9 @@ func matchingStacks(has, expected recipe.Item) bool {
 		case recipe.ItemTag:
 			return has.Tag() == expected.Tag()
 		}
-		panic(fmt.Errorf("client has unexpected recipe item %T", has))
+		panic(i18n.R("%df.session.handler.crafting.unexpected_has", fmt.Sprintf("%T", has)))
 	}
-	panic(fmt.Errorf("tried to match with unexpected recipe item %T", expected))
+	panic(i18n.R("%df.session.handler.crafting.unexpected_match", fmt.Sprintf("%T", expected)))
 }
 
 // repeatStacks multiplies the count of all item stacks provided by the number of repetitions provided. Item
@@ -237,13 +239,13 @@ func grow(i recipe.Item, count int) recipe.Item {
 	case recipe.ItemTag:
 		return recipe.NewItemTag(i.Tag(), i.Count()+count)
 	}
-	panic(fmt.Errorf("unexpected recipe item %T", i))
+	panic(i18n.R("%df.session.handler.crafting.unexpected_item", fmt.Sprintf("%T", i)))
 }
 
 // tryDynamicCraft attempts to match the items in the crafting grid with any registered dynamic recipes.
 func (h *ItemStackRequestHandler) tryDynamicCraft(s *Session, tx *world.Tx, timesCrafted int) error {
 	if timesCrafted < 1 {
-		return fmt.Errorf("times crafted must be at least 1")
+		return errors.New(i18n.R("%df.session.handler.crafting.times_crafted_min"))
 	}
 
 	size := s.craftingSize()
@@ -308,5 +310,5 @@ func (h *ItemStackRequestHandler) tryDynamicCraft(s *Session, tx *world.Tx, time
 		return h.createResults(s, tx, repeatStacks(output, timesCrafted)...)
 	}
 
-	return fmt.Errorf("no matching recipe found for crafting grid")
+	return errors.New(i18n.R("%df.session.handler.crafting.no_matching_recipe"))
 }

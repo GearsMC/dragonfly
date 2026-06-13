@@ -1,0 +1,214 @@
+# Dragonfly session English translations
+# Strings used in server/session/*.go for runtime errors, panics and structured logs.
+
+# --- session.go ---
+"%df.session.err_self_runtime_id" = "invalid entity runtime ID: runtime ID for self must always be 1"
+"%df.session.packet.process" = "process packet: %v"
+"%df.session.packet.unhandled" = "unhandled packet"
+"%df.session.packet.handle" = "%v: %v"
+"%df.session.panic.should_never_happen" = "should never happen"
+"%df.session.panic.unknown_effect" = "unregistered effect type %v"
+"%df.session.unknown_debug_shape" = "unknown debug shape type %v"
+"%df.session.slot.exceeds_hotbar" = "slot exceeds hotbar range 0-8: slot is %v"
+"%df.session.slot.verify_mismatch" = "verify slot: client-side item was not equal to server-side item"
+"%df.session.send_form.too_many" = "SendForm: more than 10 active forms: dropping an existing one"
+"%df.session.entity.runtime_id_not_found" = "entity runtime ID not found"
+
+# --- chunk.go ---
+"%df.session.chunk.too_many_blobs" = "too many blobs pending"
+
+# --- world.go ---
+"%df.session.world.panic.invalid_crossbow_stage" = "invalid crossbow loading stage"
+"%df.session.world.panic.disc_no_sound" = "disc (%v) does not have sound"
+
+# --- handler_anvil.go ---
+"%df.session.handler.anvil.no_container" = "no anvil container opened"
+"%df.session.handler.anvil.filter_index_out_of_bounds" = "filter string index %v is out of bounds"
+"%df.session.handler.anvil.no_input" = "no item in input input slot"
+"%df.session.handler.anvil.not_repairable" = "input item is not repairable/same type or material item is not an enchanted book"
+"%df.session.handler.anvil.no_compatible_enchantments" = "no compatible enchantments but have incompatible ones"
+"%df.session.handler.anvil.no_action" = "no action was taken"
+"%df.session.handler.anvil.impossible_cost" = "impossible cost"
+"%df.session.handler.anvil.not_enough_xp" = "not enough experience"
+"%df.session.handler.anvil.fully_repaired" = "input item is already fully repaired"
+
+# --- handler_beacon.go ---
+"%df.session.handler.beacon.no_container" = "no beacon container opened"
+"%df.session.handler.beacon.invalid_payment" = "item %v in beacon slot cannot be used as payment"
+"%df.session.handler.beacon.primary_effect_not_allowed" = "primary effect selected is not allowed: %v for level %v"
+"%df.session.handler.beacon.secondary_effect_not_allowed" = "secondary effect selected is not allowed: %v for level %v"
+
+# --- handler_block_actor_data.go ---
+"%df.session.handler.block_actor_data.not_in_reach" = "block at %v is not within reach"
+"%df.session.handler.block_actor_data.unhandled_id" = "unhandled block actor data ID %v"
+"%df.session.handler.block_actor_data.no_id_tag" = "block actor data without 'id' tag: %v"
+"%df.session.handler.block_actor_data.no_sign" = "no sign at position of sign block actor data"
+"%df.session.handler.block_actor_data.sign.front_text_not_found" = "sign block actor data 'FrontText' tag was not found or was not a map: %v"
+"%df.session.handler.block_actor_data.sign.back_text_not_found" = "sign block actor data 'BackText' tag was not found or was not a map: %v"
+"%df.session.handler.block_actor_data.sign.no_text_tag" = "sign block actor data had no 'Text' tag for side %v"
+"%df.session.handler.block_actor_data.sign.text_not_string" = "sign block actor data 'Text' tag was not a string for side %v: %v"
+"%df.session.handler.block_actor_data.sign.text_too_long" = "sign block actor data text was longer than 256 characters for side %v"
+"%df.session.handler.block_actor_data.sign.text_not_utf8" = "sign block actor data text was not valid UTF8 for side %v"
+
+# --- handler_book_edit.go ---
+"%df.session.handler.book_edit.invalid_slot" = "invalid inventory slot index %v"
+"%df.session.handler.book_edit.not_writable_book" = "inventory slot %v does not contain a writable book"
+"%df.session.handler.book_edit.page_out_of_bounds" = "page number %v is out of bounds"
+"%df.session.handler.book_edit.text_too_long" = "text can not be longer than 256 bytes"
+"%df.session.handler.book_edit.page_limit" = "unable to add page beyond 50"
+"%df.session.handler.book_edit.insert_page" = "unable to insert page at %v"
+"%df.session.handler.book_edit.swap_out_of_bounds" = "page number out of bounds"
+
+# --- handler_command_request.go ---
+"%df.session.handler.command_request.internal_set" = "command request packet must never have the internal field set to true"
+
+# --- handler_crafting.go ---
+"%df.session.handler.crafting.not_shaped_or_shapeless" = "recipe with network id %v is not a shaped or shapeless recipe"
+"%df.session.handler.crafting.not_crafting_table" = "recipe with network id %v is not a crafting table recipe"
+"%df.session.handler.crafting.times_crafted_min" = "times crafted must be at least 1"
+"%df.session.handler.crafting.could_not_consume" = "recipe %v: could not consume expected item: %v"
+"%df.session.handler.crafting.creative_only" = "can only craft creative items in gamemode creative/spectator"
+"%df.session.handler.crafting.creative_item_missing" = "creative item with network ID %v does not exist"
+"%df.session.handler.crafting.unexpected_has" = "client has unexpected recipe item %v"
+"%df.session.handler.crafting.unexpected_match" = "tried to match with unexpected recipe item %v"
+"%df.session.handler.crafting.unexpected_item" = "unexpected recipe item %v"
+"%df.session.handler.crafting.no_matching_recipe" = "no matching recipe found for crafting grid"
+
+# --- handler_enchanting.go ---
+"%df.session.handler.enchanting.invalid_recipe_id" = "invalid recipe network id: %v"
+"%df.session.handler.enchanting.single_item_only" = "enchanting tables only accept one item at a time"
+"%df.session.handler.enchanting.not_enchantable" = "can't enchant non-enchantable item"
+"%df.session.handler.enchanting.not_enough_levels_requirement" = "not enough levels to meet requirement"
+"%df.session.handler.enchanting.not_enough_levels_cost" = "not enough levels to meet cost"
+"%df.session.handler.enchanting.no_lapis" = "lapis lazuli was not input"
+"%df.session.handler.enchanting.not_enough_lapis" = "not enough lapis lazuli to meet cost"
+"%df.session.handler.enchanting.panic.should_never_happen" = "should never happen"
+
+# --- handler_grindstone.go ---
+"%df.session.handler.grindstone.no_container" = "no grindstone container opened"
+"%df.session.handler.grindstone.empty_input" = "input item(s) are empty"
+"%df.session.handler.grindstone.not_single" = "input item(s) are not single items"
+"%df.session.handler.grindstone.same_type" = "input items must be the same type"
+"%df.session.handler.grindstone.must_be_durable" = "input items must be durable"
+
+# --- handler_interact.go ---
+"%df.session.handler.interact.unexpected_action" = "unexpected interact packet action %v"
+
+# --- handler_inventory_transaction.go ---
+"%df.session.handler.inventory_transaction.too_many_sync" = "too many slot sync requests in inventory transaction"
+"%df.session.handler.inventory_transaction.too_many_slots" = "too many slots in slot sync request"
+"%df.session.handler.inventory_transaction.verify_normal" = "process packet: InventoryTransaction: verify Normal transaction actions: %v"
+"%df.session.handler.inventory_transaction.unhandled_type" = "unhandled inventory transaction type %v"
+"%df.session.handler.inventory_transaction.drop_two_actions" = "expected two actions for dropping an item, got %v"
+"%df.session.handler.inventory_transaction.non_empty_old" = "unexpected non-empty old item in transaction action: %v"
+"%df.session.handler.inventory_transaction.empty_old" = "unexpected empty old item in transaction action: %v"
+"%df.session.handler.inventory_transaction.unexpected_action" = "unexpected action type in drop item transaction"
+"%df.session.handler.inventory_transaction.no_drop" = "expected at least one item to be dropped, got %v"
+"%df.session.handler.inventory_transaction.too_many_throw" = "tried to throw %v items, but held only %v in slot"
+"%df.session.handler.inventory_transaction.different_thrown" = "different item thrown than held in slot: %v was thrown but held %v"
+"%df.session.handler.inventory_transaction.interact_self" = "invalid entity interaction: players cannot interact with themselves"
+"%df.session.handler.inventory_transaction.no_entity" = "invalid entity interaction: no entity with runtime ID"
+"%df.session.handler.inventory_transaction.different_world" = "invalid entity interaction: entity is not in the same world (anymore)"
+"%df.session.handler.inventory_transaction.unhandled_use_item_on_entity" = "unhandled UseItemOnEntity ActionType %v"
+"%df.session.handler.inventory_transaction.unhandled_use_item" = "unhandled UseItem ActionType %v"
+
+# --- handler_item_stack_request.go ---
+"%df.session.handler.item_stack_request.resolve" = "process packet: ItemStackRequest: resolve item stack request: %v"
+"%df.session.handler.item_stack_request.unhandled_action" = "unhandled stack request action %v"
+"%df.session.handler.item_stack_request.action" = "%v: %v"
+"%df.session.handler.item_stack_request.source_out_of_sync" = "source slot out of sync: %v"
+"%df.session.handler.item_stack_request.incomparable" = "client tried transferring %v to %v, but the stacks are incomparable"
+"%df.session.handler.item_stack_request.subtract_more" = "client tried subtracting %v from item count, but there are only %v"
+"%df.session.handler.item_stack_request.exceeds_max" = "client tried adding %v to item count %v, but max is %v"
+"%df.session.handler.item_stack_request.slot_out_of_sync" = "slot out of sync: %v"
+"%df.session.handler.item_stack_request.destroy_creative" = "can only destroy items in gamemode creative/spectator"
+"%df.session.handler.item_stack_request.destroy_more" = "client attempted to destroy %v items, but only %v present"
+"%df.session.handler.item_stack_request.drop_more" = "client attempted to drop %v items, but only %v present"
+"%df.session.handler.item_stack_request.invalid_result_slot" = "invalid pending result slot: %v"
+"%df.session.handler.item_stack_request.duplicate_result" = "tried duplicating created result: %v"
+"%df.session.handler.item_stack_request.too_many_unack" = "too many unacknowledged request slot changes"
+"%df.session.handler.item_stack_request.id_mismatch" = "stack ID mismatch: client expected %v, but server had %v"
+"%df.session.handler.item_stack_request.request_not_found" = "slot pointed to stack request %v, but request could not be found"
+"%df.session.handler.item_stack_request.container_not_changed" = "slot pointed to stack request %v with container %v, but that container was not changed in the request"
+"%df.session.handler.item_stack_request.slot_not_changed" = "slot pointed to stack request %v with container %v and slot %v, but that slot was not changed in the request"
+"%df.session.handler.item_stack_request.container_not_found" = "could not find container with id %v"
+"%df.session.handler.item_stack_request.container_unable" = "unable to find container with ID %v"
+"%df.session.handler.item_stack_request.action_cancelled" = "action was cancelled"
+
+# --- handler_lectern_update.go ---
+"%df.session.handler.lectern_update.not_in_reach" = "block at %v is not within reach"
+"%df.session.handler.lectern_update.not_lectern" = "block at %v is not a lectern"
+
+# --- handler_loom.go ---
+"%df.session.handler.loom.no_container" = "no loom container opened"
+"%df.session.handler.loom.times_crafted_min" = "times crafted must be least 1"
+"%df.session.handler.loom.input_count_low" = "input item count is less than times crafted"
+"%df.session.handler.loom.not_banner" = "input item is not a banner"
+"%df.session.handler.loom.illager_banner" = "input item is an illager banner"
+"%df.session.handler.loom.dye_count_low" = "dye item count is less than times crafted"
+"%df.session.handler.loom.not_dye" = "dye item is not a dye"
+"%df.session.handler.loom.pattern_empty" = "pattern item is empty but the pattern is required"
+"%df.session.handler.loom.not_pattern" = "pattern item is not a banner pattern"
+"%df.session.handler.loom.pattern_mismatch" = "pattern item does not match the expected pattern"
+
+# --- handler_mob_equipment.go ---
+"%df.session.handler.mob_equipment.wrong_window" = "only main inventory should be involved in slot change, got window ID %v"
+
+# --- handler_modal_form_response.go ---
+"%df.session.handler.modal_form_response.no_form" = "no form with ID %v currently opened"
+"%df.session.handler.modal_form_response.submit_error" = "error submitting form data: %v"
+
+# --- handler_npc_request.go ---
+"%df.session.handler.npc_request.submit_error" = "error submitting dialogue: %v"
+
+# --- handler_player_action.go ---
+"%df.session.handler.player_action.unhandled" = "unhandled ActionType %v"
+
+# --- handler_player_auth_input.go ---
+"%df.session.handler.player_auth_input.nan_inf" = "process packet: PlayerAuthInput: found nan/inf values. assuming server-side values"
+"%df.session.handler.player_auth_input.resolve_item_stack_request" = "process packet: PlayerAuthInput: resolve item stack request: %v"
+"%df.session.handler.player_auth_input.flying_flag" = "process packet: PlayerAuthInput: flying flag enabled while unable to fly"
+"%df.session.handler.player_auth_input.held_item_mismatch" = "process packet: PlayerAuthInput: UseItemTransaction: mismatch between actual held item and client held item"
+"%df.session.handler.player_auth_input.unhandled_use_item" = "unhandled UseItem ActionType for PlayerAuthInput packet %v"
+
+# --- handler_player_skin.go ---
+"%df.session.handler.player_skin.decode_error" = "error decoding skin: %v"
+
+# --- handler_request_ability.go ---
+"%df.session.handler.request_ability.flying_flag" = "process packet: RequestAbility: flying flag enabled while unable to fly"
+
+# --- handler_respawn.go ---
+"%df.session.handler.respawn.bad_state" = "respawn state must always be %v, but got %v"
+
+# --- handler_server_bound_loading_screen.go ---
+"%df.session.handler.server_bound_loading_screen.bad_id" = "expected loading screen ID %v, got %v"
+
+# --- handler_smithing.go ---
+"%df.session.handler.smithing.recipe_not_found" = "recipe with network id %v does not exist"
+"%df.session.handler.smithing.not_smithing_table" = "recipe with network id %v is not a smithing table recipe"
+"%df.session.handler.smithing.not_smithing" = "recipe with network id %v is not a smithing recipe"
+"%df.session.handler.smithing.input_mismatch" = "input item is not the same as expected input"
+"%df.session.handler.smithing.material_mismatch" = "material item is not the same as expected material"
+"%df.session.handler.smithing.template_mismatch" = "template item is not the same as expected template"
+"%df.session.handler.smithing.not_template" = "template item is not a smithing template"
+"%df.session.handler.smithing.not_trim_material" = "material item is not an armour trim material"
+"%df.session.handler.smithing.not_trimmable" = "input item is not trimmable"
+
+# --- handler_stonecutter.go ---
+"%df.session.handler.stonecutter.recipe_not_found" = "recipe with network id %v does not exist"
+"%df.session.handler.stonecutter.not_shapeless" = "recipe with network id %v is not a shapeless recipe"
+"%df.session.handler.stonecutter.not_stonecutter" = "recipe with network id %v is not a stonecutter recipe"
+"%df.session.handler.stonecutter.times_crafted_min" = "times crafted must be at least 1"
+"%df.session.handler.stonecutter.input_count_low" = "input item count is less than number of crafts"
+"%df.session.handler.stonecutter.input_mismatch" = "input item is not the same as expected input"
+
+# --- handler_text.go ---
+"%df.session.handler.text.bad_type" = "TextType should always be Chat (%v), but got %v"
+"%df.session.handler.text.source_name_mismatch" = "SourceName must be equal to DisplayName"
+"%df.session.handler.text.xuid_mismatch" = "XUID must be equal to player's XUID"
+
+# --- protocolToSkin (in player.go) ---
+"%df.session.player.skin.empty_id" = "SkinID must not be an empty string"
+"%df.session.player.skin.invalid_geometry" = "SkinGeometry was not a valid JSON string: %v"
+"%df.session.player.skin.invalid_resource_patch" = "SkinResourcePatch was not a valid JSON string: %v"
+"%df.session.player.skin.invalid_animation_type" = "invalid animation type: %v"

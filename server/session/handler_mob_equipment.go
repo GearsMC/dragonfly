@@ -1,7 +1,8 @@
 package session
 
 import (
-	"fmt"
+	"errors"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
@@ -24,6 +25,6 @@ func (*MobEquipmentHandler) Handle(p packet.Packet, s *Session, tx *world.Tx, c 
 	case protocol.WindowIDInventory:
 		return s.VerifyAndSetHeldSlot(int(pk.InventorySlot), stackToItem(s.br, pk.NewItem.Stack), c)
 	default:
-		return fmt.Errorf("only main inventory should be involved in slot change, got window ID %v", pk.WindowID)
+		return errors.New(i18n.R("%df.session.handler.mob_equipment.wrong_window", pk.WindowID))
 	}
 }

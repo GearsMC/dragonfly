@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/binary"
 	"fmt"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/sandertv/gophertunnel/minecraft/nbt"
 	"io"
 	"os"
@@ -27,7 +28,7 @@ type header struct {
 func ReadFile(name string) (*LevelDat, error) {
 	f, err := os.Open(name)
 	if err != nil {
-		return nil, fmt.Errorf("level.dat: open file: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.R("%df.world.leveldat.open_file"), err)
 	}
 	defer f.Close()
 	return Read(bufio.NewReader(f))
@@ -37,11 +38,11 @@ func ReadFile(name string) (*LevelDat, error) {
 func Read(r io.Reader) (*LevelDat, error) {
 	var ldat LevelDat
 	if err := binary.Read(r, binary.LittleEndian, &ldat.hdr); err != nil {
-		return nil, fmt.Errorf("level.dat: read header: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.R("%df.world.leveldat.read_header"), err)
 	}
 	ldat.data = make([]byte, ldat.hdr.FileLength)
 	if n, err := r.Read(ldat.data); err != nil || int32(n) != ldat.hdr.FileLength {
-		return nil, fmt.Errorf("level.dat: read data: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.R("%df.world.leveldat.read_data"), err)
 	}
 	return &ldat, nil
 }
@@ -51,7 +52,7 @@ func Read(r io.Reader) (*LevelDat, error) {
 // level.dat.
 func (ld *LevelDat) Unmarshal(dst any) error {
 	if err := nbt.UnmarshalEncoding(ld.data, dst, nbt.LittleEndian); err != nil {
-		return fmt.Errorf("level.dat: decode nbt: %w", err)
+		return fmt.Errorf("%s: %w", i18n.R("%df.world.leveldat.decode_nbt"), err)
 	}
 	return nil
 }
@@ -68,7 +69,7 @@ func (ld *LevelDat) Marshal(src any) error {
 	var err error
 	ld.data, err = nbt.MarshalEncoding(src, nbt.LittleEndian)
 	if err != nil {
-		return fmt.Errorf("level.dat: encode nbt: %w", err)
+		return fmt.Errorf("%s: %w", i18n.R("%df.world.leveldat.encode_nbt"), err)
 	}
 	ld.hdr = header{
 		StorageVersion: Version,
@@ -80,10 +81,10 @@ func (ld *LevelDat) Marshal(src any) error {
 // Write writes ld to w.
 func (ld *LevelDat) Write(w io.Writer) error {
 	if err := binary.Write(w, binary.LittleEndian, ld.hdr); err != nil {
-		return fmt.Errorf("level.dat: write header: %w", err)
+		return fmt.Errorf("%s: %w", i18n.R("%df.world.leveldat.write_header"), err)
 	}
 	if _, err := w.Write(ld.data); err != nil {
-		return fmt.Errorf("level.dat: write data: %w", err)
+		return fmt.Errorf("%s: %w", i18n.R("%df.world.leveldat.write_data"), err)
 	}
 	return nil
 }
@@ -92,7 +93,7 @@ func (ld *LevelDat) Write(w io.Writer) error {
 func (ld *LevelDat) WriteFile(name string) error {
 	f, err := os.OpenFile(name, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		return fmt.Errorf("level.dat: open file: %w", err)
+		return fmt.Errorf("%s: %w", i18n.R("%df.world.leveldat.open_file"), err)
 	}
 	w := bufio.NewWriter(f)
 	defer func() {

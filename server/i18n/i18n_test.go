@@ -104,37 +104,29 @@ func TestAllCustomKeysRegistered(t *testing.T) {
 
 func findUsedCustomKeys(t *testing.T) map[string]bool {
 	keys := make(map[string]bool)
-	dirs := []string{
-		"..",
-		filepath.Join("..", "cmd"),
-		filepath.Join("..", "cmd", "builtin"),
-		filepath.Join("..", "block"),
-		filepath.Join("..", "console"),
-		filepath.Join("..", "internal", "packbuilder"),
-		filepath.Join("..", "player"),
-		filepath.Join("..", "whitelist"),
-	}
-	for _, dir := range dirs {
-		entries, err := os.ReadDir(dir)
+	root := ".."
+	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
-			t.Fatalf("klasör okunamadi %s: %v", dir, err)
+			return err
 		}
-		for _, entry := range entries {
-			if entry.IsDir() {
-				continue
-			}
-			name := entry.Name()
-			if !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
-				continue
-			}
-			data, err := os.ReadFile(filepath.Join(dir, name))
-			if err != nil {
-				t.Fatalf("dosya okunamadi %s: %v", name, err)
-			}
-			for _, m := range customKeyRe.FindAllString(string(data), -1) {
-				keys[strings.Trim(m, `"`)] = true
-			}
+		if d.IsDir() {
+			return nil
 		}
+		name := d.Name()
+		if !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+			return nil
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		for _, m := range customKeyRe.FindAllString(string(data), -1) {
+			keys[strings.Trim(m, `"`)] = true
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("kaynak dosyalari taranirken hata: %v", err)
 	}
 	return keys
 }

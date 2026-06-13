@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/session"
 	"github.com/sandertv/gophertunnel/minecraft"
 )
@@ -36,9 +37,9 @@ func (uc UserConfig) listenerFunc(conf Config) (Listener, error) {
 	}
 	l, err := cfg.Listen("raknet", uc.Network.Address)
 	if err != nil {
-		return nil, fmt.Errorf("create minecraft listener: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.R("%df.listener.error.create"), err)
 	}
-	conf.Log.Info("Listener running.", "addr", l.Addr())
+	conf.Log.Info(i18n.R("%df.listener.running"), "addr", l.Addr())
 	return listener{l}, nil
 }
 

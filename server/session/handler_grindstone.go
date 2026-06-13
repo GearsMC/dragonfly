@@ -1,7 +1,8 @@
 package session
 
 import (
-	"fmt"
+	"errors"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"math"
 	"math/rand/v2"
@@ -23,10 +24,10 @@ const (
 func (h *ItemStackRequestHandler) handleGrindstoneCraft(s *Session, tx *world.Tx, c Controllable) error {
 	// First check if there actually is a grindstone opened.
 	if !s.containerOpened.Load() {
-		return fmt.Errorf("no grindstone container opened")
+		return errors.New(i18n.R("%df.session.handler.grindstone.no_container"))
 	}
 	if _, ok := tx.Block(*s.openedPos.Load()).(block.Grindstone); !ok {
-		return fmt.Errorf("no grindstone container opened")
+		return errors.New(i18n.R("%df.session.handler.grindstone.no_container"))
 	}
 
 	// Next, get both input items and ensure they are comparable.
@@ -39,10 +40,10 @@ func (h *ItemStackRequestHandler) handleGrindstoneCraft(s *Session, tx *world.Tx
 		Slot:      grindstoneSecondInputSlot,
 	}, s, tx)
 	if firstInput.Empty() && secondInput.Empty() {
-		return fmt.Errorf("input item(s) are empty")
+		return errors.New(i18n.R("%df.session.handler.grindstone.empty_input"))
 	}
 	if firstInput.Count() > 1 || secondInput.Count() > 1 {
-		return fmt.Errorf("input item(s) are not single items")
+		return errors.New(i18n.R("%df.session.handler.grindstone.not_single"))
 	}
 
 	resultStack := nonZeroItem(firstInput, secondInput)
@@ -50,10 +51,10 @@ func (h *ItemStackRequestHandler) handleGrindstoneCraft(s *Session, tx *world.Tx
 		name, meta := firstInput.Item().EncodeItem()
 		name2, meta2 := secondInput.Item().EncodeItem()
 		if name != name2 || meta != meta2 {
-			return fmt.Errorf("input items must be the same type")
+			return errors.New(i18n.R("%df.session.handler.grindstone.same_type"))
 		}
 		if _, ok := firstInput.Item().(item.Durable); !ok {
-			return fmt.Errorf("input items must be durable")
+			return errors.New(i18n.R("%df.session.handler.grindstone.must_be_durable"))
 		}
 
 		// We add the enchantments to the result stack in order to calculate the gained experience. These enchantments

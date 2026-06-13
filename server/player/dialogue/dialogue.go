@@ -2,7 +2,9 @@ package dialogue
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"reflect"
 	"strings"
@@ -24,7 +26,7 @@ type Dialogue struct {
 func New(submittable Submittable, title ...any) Dialogue {
 	t := reflect.TypeOf(submittable)
 	if t.Kind() != reflect.Struct {
-		panic("submittable must be struct")
+		panic(i18n.R("%df.dialogue.panic.submittable_struct"))
 	}
 	m := Dialogue{title: format(title), submittable: submittable}
 	m.verify()
@@ -100,7 +102,7 @@ func (m Dialogue) Buttons() []Button {
 func (m Dialogue) Submit(index uint, submitter Submitter, tx *world.Tx) error {
 	buttons := m.Buttons()
 	if index >= uint(len(buttons)) {
-		return fmt.Errorf("button index points to inexistent button: %v (only %v buttons present)", index, len(buttons))
+		return errors.New(i18n.R("%df.dialogue.error.button_index_invalid", index, len(buttons)))
 	}
 	m.submittable.Submit(submitter, buttons[index], tx)
 	return nil
@@ -126,12 +128,12 @@ func (m Dialogue) verify() {
 			continue
 		}
 		if _, ok := v.Field(i).Interface().(Button); !ok {
-			panic("all exported fields must be of the type dialogue.Button")
+			panic(i18n.R("%df.dialogue.panic.exported_fields_button"))
 		}
 		buttons++
 	}
 	if buttons+len(m.buttons) > 6 {
-		panic("maximum of 6 buttons allowed")
+		panic(i18n.R("%df.dialogue.panic.max_buttons"))
 	}
 }
 

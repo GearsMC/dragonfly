@@ -1,9 +1,12 @@
 package scoreboard
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/df-mc/dragonfly/server/i18n"
 )
 
 // Scoreboard represents a scoreboard that may be sent to a player. The scoreboard is shown on the right side
@@ -44,7 +47,7 @@ func (board *Scoreboard) WriteString(s string) (n int, err error) {
 
 	// Scoreboards can have up to 15 lines. (16 including the title.)
 	if len(board.lines) >= 15 {
-		return len(lines), fmt.Errorf("write scoreboard: maximum of 15 lines of text exceeded")
+		return len(lines), errors.New(i18n.R("%df.scoreboard.error.max_lines"))
 	}
 	return len(lines), nil
 }
@@ -53,7 +56,7 @@ func (board *Scoreboard) WriteString(s string) (n int, err error) {
 // index passed is negative or 15+.
 func (board *Scoreboard) Set(index int, s string) {
 	if index < 0 || index >= 15 {
-		panic(fmt.Sprintf("index out of range %v", index))
+		panic(i18n.R("%df.scoreboard.panic.index_out_of_range", index))
 	}
 	if diff := index - (len(board.lines) - 1); diff > 0 {
 		board.lines = append(board.lines, make([]string, diff)...)
@@ -65,7 +68,7 @@ func (board *Scoreboard) Set(index int, s string) {
 // Remove removes a specific line from the scoreboard. Remove panics if the index passed is negative or 15+.
 func (board *Scoreboard) Remove(index int) {
 	if index < 0 || index >= 15 {
-		panic(fmt.Sprintf("index out of range %v", index))
+		panic(i18n.R("%df.scoreboard.panic.index_out_of_range", index))
 	}
 	board.lines = append(board.lines[:index], board.lines[index+1:]...)
 }

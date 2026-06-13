@@ -2,9 +2,11 @@ package form
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 )
 
@@ -21,7 +23,7 @@ type Menu struct {
 func NewMenu(submittable MenuSubmittable, title ...any) Menu {
 	t := reflect.TypeOf(submittable)
 	if t.Kind() != reflect.Struct {
-		panic("submittable must be struct")
+		panic(i18n.R("%df.form.panic.submittable_struct"))
 	}
 	m := Menu{title: format(title), submittable: submittable}
 	m.verify()
@@ -149,11 +151,11 @@ func (m Menu) SubmitJSON(b []byte, submitter Submitter, tx *world.Tx) error {
 	var index uint
 	err := json.Unmarshal(b, &index)
 	if err != nil {
-		return fmt.Errorf("cannot parse button index as int: %w", err)
+		return fmt.Errorf("%s: %w", i18n.R("%df.form.error.parse_button_index"), err)
 	}
 	buttons := m.Buttons()
 	if index >= uint(len(buttons)) {
-		return fmt.Errorf("button index points to inexistent button: %v (only %v buttons present)", index, len(buttons))
+		return errors.New(i18n.R("%df.form.error.button_index_invalid", index, len(buttons)))
 	}
 	m.submittable.Submit(submitter, buttons[index], tx)
 	return nil
@@ -169,7 +171,7 @@ func (m Menu) verify() {
 			continue
 		}
 		if _, ok := v.Field(i).Interface().(MenuElement); !ok {
-			panic("all exported fields must implement form.MenuElement")
+			panic(i18n.R("%df.form.panic.exported_fields_menu_element"))
 		}
 	}
 }

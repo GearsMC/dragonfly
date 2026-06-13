@@ -2,7 +2,7 @@ package inventory
 
 import (
 	"errors"
-	"fmt"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/item"
 	"math"
 	"slices"
@@ -40,7 +40,7 @@ var ErrSlotOutOfRange = errors.New("slot is out of range: must be in range 0 <= 
 // nothing needs to be done.
 func New(size int, f SlotFunc) *Inventory {
 	if size <= 0 {
-		panic("inventory size must be at least 1")
+		panic(i18n.R("%df.inventory.panic.size_at_least_1"))
 	}
 	if f == nil {
 		f = func(slot int, before, after item.Stack) {}
@@ -226,7 +226,7 @@ func (inv *Inventory) AddItem(it item.Stack) (n int, err error) {
 	}
 	inv.mu.Unlock()
 	// We were unable to clear out the entire stack to be added to the inventory: There wasn't enough space.
-	return first - it.Count(), fmt.Errorf("could not add full item stack to inventory")
+	return first - it.Count(), errors.New(i18n.R("%df.inventory.error.add_full_stack"))
 }
 
 // RemoveItem attempts to remove an item from the inventory. It will visit all slots in the inventory and
@@ -266,7 +266,7 @@ func (inv *Inventory) RemoveItemFunc(n int, comparable func(stack item.Stack) bo
 	inv.mu.Unlock()
 
 	if n > 0 {
-		return fmt.Errorf("could not remove all items from the inventory")
+		return errors.New(i18n.R("%df.inventory.error.remove_all_items"))
 	}
 	return nil
 }
@@ -428,6 +428,6 @@ func (inv *Inventory) validSlot(slot int) bool {
 // was not created using New().
 func (inv *Inventory) check() {
 	if inv.size() == 0 {
-		panic("uninitialised inventory: inventory must be constructed using inventory.New()")
+		panic(i18n.R("%df.inventory.panic.uninitialised"))
 	}
 }

@@ -1,11 +1,15 @@
 package permission
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/df-mc/dragonfly/server/i18n"
+)
 
 func errEmptyXUID() error {
-	return fmt.Errorf("xuid boş olamaz")
+	return fmt.Errorf("%s", i18n.R("%df.permission.error.empty_xuid"))
 }
 
 func errEmptyPermission() error {
-	return fmt.Errorf("permission boş olamaz")
+	return fmt.Errorf("%s", i18n.R("%df.permission.error.empty_permission"))
 }

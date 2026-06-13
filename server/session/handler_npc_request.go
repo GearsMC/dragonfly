@@ -2,6 +2,7 @@ package session
 
 import (
 	"fmt"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/player/dialogue"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
@@ -19,7 +20,7 @@ func (h *NPCRequestHandler) Handle(p packet.Packet, s *Session, tx *world.Tx, c 
 	switch pk.RequestType {
 	case packet.NPCRequestActionExecuteAction:
 		if err := h.dialogue.Submit(uint(pk.ActionType), c, tx); err != nil {
-			return fmt.Errorf("error submitting dialogue: %w", err)
+			return fmt.Errorf("%s: %w", i18n.R("%df.session.handler.npc_request.submit_error"), err)
 		}
 	case packet.NPCRequestActionExecuteClosingCommands:
 		h.dialogue.Close(c, tx)

@@ -5,6 +5,7 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/df-mc/dragonfly/server/block/cube"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/df-mc/dragonfly/server/world/chunk"
 	"github.com/sandertv/gophertunnel/minecraft/nbt"
@@ -173,7 +174,7 @@ func (s *Session) sendBlobHashes(pos world.ChunkPos, dim world.Dimension, c *chu
 	s.openChunkTransactions = append(s.openChunkTransactions, m)
 	if l := len(s.blobs); l > 4096 {
 		s.blobMu.Unlock()
-		s.conf.Log.Error("too many blobs pending", "n", l)
+		s.conf.Log.Error(i18n.R("%df.session.chunk.too_many_blobs"), "n", l)
 		return
 	}
 	for i := range hashes {
@@ -248,7 +249,7 @@ func (s *Session) trackBlob(hash uint64, blob []byte) bool {
 	s.blobMu.Lock()
 	if l := len(s.blobs); l > 4096 {
 		s.blobMu.Unlock()
-		s.conf.Log.Error("too many blobs pending", "n", l)
+		s.conf.Log.Error(i18n.R("%df.session.chunk.too_many_blobs"), "n", l)
 		return false
 	}
 	s.blobs[hash] = blob

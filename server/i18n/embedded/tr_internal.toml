@@ -1,0 +1,5 @@
+# Dragonfly internal Turkish translations
+# i18n paketinin ve runtime hata mesajlarının çevirileri.
+"%df.internal.i18n.parse_toml" = "TOML ayrıştırılamadı %v"
+"%df.internal.i18n.invalid_locale_filename" = "Geçersiz locale dosya adı %v"
+"%df.internal.permission.unknown_state" = "Bilinmeyen permission durumu: %v"

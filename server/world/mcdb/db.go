@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/df-mc/dragonfly/server/block/cube"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/df-mc/dragonfly/server/world/chunk"
 	"github.com/df-mc/dragonfly/server/world/mcdb/leveldat"
@@ -65,7 +66,7 @@ func (db *DB) LoadColumn(pos world.ChunkPos, dim world.Dimension) (*chunk.Column
 	k := dbKey{pos: pos, dim: dim}
 	col, err := db.column(k)
 	if err != nil {
-		return nil, fmt.Errorf("load column %v (%v): %w", pos, dim, err)
+		return nil, fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.load_column", pos, dim), err)
 	}
 	return col, nil
 }
@@ -78,38 +79,38 @@ func (db *DB) column(k dbKey) (*chunk.Column, error) {
 
 	ver, err := db.version(k)
 	if err != nil {
-		return nil, fmt.Errorf("read version: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.read_version"), err)
 	}
 	if ver != chunkVersion {
-		db.conf.Log.Debug("column: unsupported chunk version, trying to load anyway", "X", k.pos[0], "Z", k.pos[1], "dimension", fmt.Sprint(k.dim), "ver", ver)
+		db.conf.Log.Debug(i18n.R("%df.world.mcdb.unsupported_chunk_version", k.pos[0], k.pos[1], fmt.Sprint(k.dim), ver), "X", k.pos[0], "Z", k.pos[1], "dimension", fmt.Sprint(k.dim), "ver", ver)
 	}
 	cdata.Biomes, err = db.biomes(k)
 	if err != nil && !errors.Is(err, leveldb.ErrNotFound) {
 		// Some chunks still use 2D chunk data and might not have this field, in
 		// which case we can just move on.
-		return nil, fmt.Errorf("read biomes: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.read_biomes"), err)
 	}
 	cdata.SubChunks, err = db.subChunks(k)
 	if err != nil {
-		return nil, fmt.Errorf("read sub chunks: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.read_sub_chunks"), err)
 	}
 	col.Chunk, err = chunk.DiskDecode(db.conf.Blocks, cdata, k.dim.Range())
 	if err != nil {
-		return nil, fmt.Errorf("decode chunk data: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.decode_chunk"), err)
 	}
 	col.Entities, err = db.entities(k)
 	if err != nil && !errors.Is(err, leveldb.ErrNotFound) {
 		// Not all chunks need to have entities, so an ErrNotFound is fine here.
-		return nil, fmt.Errorf("read entities: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.read_entities"), err)
 	}
 	col.BlockEntities, err = db.blockEntities(k)
 	if err != nil && !errors.Is(err, leveldb.ErrNotFound) {
 		// Same as with entities, an ErrNotFound is fine here.
-		return nil, fmt.Errorf("read block entities: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.read_block_entities"), err)
 	}
 	col.ScheduledBlocks, col.Tick, err = db.scheduledUpdates(k)
 	if err != nil && !errors.Is(err, leveldb.ErrNotFound) {
-		return nil, fmt.Errorf("read scheduled updates: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.read_scheduled_updates"), err)
 	}
 	return col, nil
 }
@@ -127,7 +128,7 @@ func (db *DB) version(k dbKey) (byte, error) {
 		return 0, err
 	}
 	if n := len(p); n != 1 {
-		return 0, fmt.Errorf("expected 1 version byte, got %v", n)
+		return 0, fmt.Errorf("%s", i18n.R("%df.world.mcdb.version_byte", n))
 	}
 	return p[0], nil
 }
@@ -140,7 +141,7 @@ func (db *DB) biomes(k dbKey) ([]byte, error) {
 	// The first 512 bytes is a heightmap (16*16 int16s), the biomes follow. We
 	// calculate a heightmap on startup so the heightmap can be discarded.
 	if n := len(biomes); n <= 512 {
-		return nil, fmt.Errorf("expected at least 513 bytes for 3D data, got %v", n)
+		return nil, fmt.Errorf("%s", i18n.R("%df.world.mcdb.too_few_3d_bytes", n))
 	}
 	return biomes[512:], nil
 }
@@ -158,7 +159,7 @@ func (db *DB) subChunks(k dbKey) ([][]byte, error) {
 			// to the next, which might still be present.
 			continue
 		} else if err != nil {
-			return nil, fmt.Errorf("sub chunk %v: %w", int8(i), err)
+			return nil, fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.sub_chunk", int8(i)), err)
 		}
 	}
 	return sub, nil
@@ -176,12 +177,12 @@ func (db *DB) entities(k dbKey) ([]chunk.Entity, error) {
 		id := int64(binary.LittleEndian.Uint64(ids[i : i+8]))
 		data, err := db.ldb.Get(entityIndex(id), nil)
 		if err != nil {
-			db.conf.Log.Error("read entity: "+err.Error(), "ID", id)
+			db.conf.Log.Error(i18n.R("%df.world.mcdb.read_entity", err), "ID", id)
 			return nil, err
 		}
 		ent := chunk.Entity{ID: id, Data: make(map[string]any)}
 		if err = nbt.UnmarshalEncoding(data, &ent.Data, nbt.LittleEndian); err != nil {
-			db.conf.Log.Error("decode entity nbt: "+err.Error(), "ID", id)
+			db.conf.Log.Error(i18n.R("%df.world.mcdb.decode_entity_nbt", err), "ID", id)
 		}
 		entities = append(entities, ent)
 	}
@@ -201,11 +202,11 @@ func (db *DB) entitiesOld(k dbKey) ([]chunk.Entity, error) {
 	for buf.Len() != 0 {
 		ent := chunk.Entity{Data: make(map[string]any)}
 		if err := dec.Decode(&ent.Data); err != nil {
-			return nil, fmt.Errorf("decode entity nbt: %w", err)
+			return nil, fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.decode_entity_nbt_err"), err)
 		}
 		ent.ID, ok = ent.Data["UniqueID"].(int64)
 		if !ok {
-			db.conf.Log.Error("missing unique ID field, generating random", "data", fmt.Sprint(ent.Data))
+			db.conf.Log.Error(i18n.R("%df.world.mcdb.missing_unique_id", fmt.Sprint(ent.Data)), "data", fmt.Sprint(ent.Data))
 			ent.ID = rand.Int64()
 		}
 		entities = append(entities, ent)
@@ -227,7 +228,7 @@ func (db *DB) blockEntities(k dbKey) ([]chunk.BlockEntity, error) {
 	for buf.Len() != 0 {
 		be := chunk.BlockEntity{Data: make(map[string]any)}
 		if err := dec.Decode(&be.Data); err != nil {
-			return blockEntities, fmt.Errorf("decode nbt: %w", err)
+			return blockEntities, fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.decode_nbt"), err)
 		}
 		be.Pos = blockPosFromNBT(be.Data)
 		blockEntities = append(blockEntities, be)
@@ -242,7 +243,7 @@ func (db *DB) scheduledUpdates(k dbKey) ([]chunk.ScheduledBlockUpdate, int64, er
 	}
 	var m scheduledUpdates
 	if err := nbt.UnmarshalEncoding(data, &m, nbt.LittleEndian); err != nil {
-		return nil, 0, fmt.Errorf("read nbt: %s", err.Error())
+		return nil, 0, fmt.Errorf("%s", i18n.R("%df.world.mcdb.read_nbt_scheduled", err))
 	}
 	updates := make([]chunk.ScheduledBlockUpdate, len(m.TickList))
 	for i, tick := range m.TickList {
@@ -251,7 +252,7 @@ func (db *DB) scheduledUpdates(k dbKey) ([]chunk.ScheduledBlockUpdate, int64, er
 		bpe := chunk.BlockPaletteEncoding{Blocks: db.conf.Blocks}
 		block, err := bpe.DecodeBlockState(bl)
 		if err != nil {
-			db.conf.Log.Error("read scheduled updates: decode block state: " + err.Error())
+			db.conf.Log.Error(i18n.R("%df.world.mcdb.decode_block_state", err))
 			continue
 		}
 		updates[i] = chunk.ScheduledBlockUpdate{Pos: blockPosFromNBT(tick), Block: block, Tick: t}
@@ -264,7 +265,7 @@ func (db *DB) scheduledUpdates(k dbKey) ([]chunk.ScheduledBlockUpdate, int64, er
 func (db *DB) StoreColumn(pos world.ChunkPos, dim world.Dimension, col *chunk.Column) error {
 	k := dbKey{pos: pos, dim: dim}
 	if err := db.storeColumn(k, col); err != nil {
-		return fmt.Errorf("store column %v (%v): %w", pos, dim, err)
+		return fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.store_column", pos, dim), err)
 	}
 	return nil
 }
@@ -314,7 +315,7 @@ func (db *DB) storeEntities(batch *leveldb.Batch, k dbKey, entities []chunk.Enti
 	var previousIDs []int64
 	digpPrev, err := db.ldb.Get(idsKey, nil)
 	if err != nil && !errors.Is(err, leveldb.ErrNotFound) {
-		db.conf.Log.Error("store entities: read chunk entity IDs: " + err.Error())
+		db.conf.Log.Error(i18n.R("%df.world.mcdb.store_entities_read_ids", err))
 	}
 	if err == nil {
 		for i := 0; i < len(digpPrev); i += 8 {
@@ -327,7 +328,7 @@ func (db *DB) storeEntities(batch *leveldb.Batch, k dbKey, entities []chunk.Enti
 		e.Data["UniqueID"] = e.ID
 		b, err := nbt.MarshalEncoding(e.Data, nbt.LittleEndian)
 		if err != nil {
-			db.conf.Log.Error("store entities: encode NBT: " + err.Error())
+			db.conf.Log.Error(i18n.R("%df.world.mcdb.store_entities_encode", err))
 			continue
 		}
 		batch.Put(entityIndex(e.ID), b)
@@ -370,7 +371,7 @@ func (db *DB) storeBlockEntities(batch *leveldb.Batch, k dbKey, blockEntities []
 	for _, b := range blockEntities {
 		b.Data["x"], b.Data["y"], b.Data["z"] = int32(b.Pos[0]), int32(b.Pos[1]), int32(b.Pos[2])
 		if err := enc.Encode(b.Data); err != nil {
-			db.conf.Log.Error("store block entities: encode nbt: " + err.Error())
+			db.conf.Log.Error(i18n.R("%df.world.mcdb.store_block_entities_encode", err))
 		}
 	}
 	batch.Put(k.Sum(keyBlockEntities), buf.Bytes())
@@ -391,7 +392,7 @@ func (db *DB) storeScheduledUpdates(batch *leveldb.Batch, k dbKey, tick int64, u
 	}
 	b, err := nbt.MarshalEncoding(scheduledUpdates{CurrentTick: int32(tick), TickList: list}, nbt.LittleEndian)
 	if err != nil {
-		db.conf.Log.Error("store scheduled updates: encode nbt: " + err.Error())
+		db.conf.Log.Error(i18n.R("%df.world.mcdb.store_scheduled_encode", err))
 		return
 	}
 	batch.Put(k.Sum(keyPendingScheduledTicks), b)
@@ -419,13 +420,13 @@ func (db *DB) Close() error {
 
 	var ldat leveldat.LevelDat
 	if err := ldat.Marshal(*db.ldat); err != nil {
-		return fmt.Errorf("close: %w", err)
+		return fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.close_marshal"), err)
 	}
 	if err := ldat.WriteFile(filepath.Join(db.dir, "level.dat")); err != nil {
-		return fmt.Errorf("close: %w", err)
+		return fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.close_write"), err)
 	}
 	if err := os.WriteFile(filepath.Join(db.dir, "levelname.txt"), []byte(db.ldat.LevelName), 0644); err != nil {
-		return fmt.Errorf("close: write levelname.txt: %w", err)
+		return fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.close_levelname"), err)
 	}
 	return db.ldb.Close()
 }

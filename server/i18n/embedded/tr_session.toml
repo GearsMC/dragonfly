@@ -1,0 +1,214 @@
+# Dragonfly session Turkish translations
+# Strings used in server/session/*.go for runtime errors, panics and structured logs.
+
+# --- session.go ---
+"%df.session.err_self_runtime_id" = "geçersiz entity runtime ID: kendi runtime ID her zaman 1 olmalıdır"
+"%df.session.packet.process" = "paket işleniyor: %v"
+"%df.session.packet.unhandled" = "işlenmemiş paket"
+"%df.session.packet.handle" = "%v: %v"
+"%df.session.panic.should_never_happen" = "asla olmamalıydı"
+"%df.session.panic.unknown_effect" = "kayıtsız efekt türü %v"
+"%df.session.unknown_debug_shape" = "bilinmeyen debug shape türü %v"
+"%df.session.slot.exceeds_hotbar" = "slot hotbar aralığı 0-8'i aşıyor: slot %v"
+"%df.session.slot.verify_mismatch" = "slot doğrula: istemci tarafı öğesi sunucu tarafı öğesiyle eşleşmedi"
+"%df.session.send_form.too_many" = "SendForm: 10'dan fazla etkin form: mevcut bir form düşürülüyor"
+"%df.session.entity.runtime_id_not_found" = "entity runtime ID bulunamadı"
+
+# --- chunk.go ---
+"%df.session.chunk.too_many_blobs" = "çok fazla blob bekliyor"
+
+# --- world.go ---
+"%df.session.world.panic.invalid_crossbow_stage" = "geçersiz crossbow yükleme aşaması"
+"%df.session.world.panic.disc_no_sound" = "plak (%v) için ses yok"
+
+# --- handler_anvil.go ---
+"%df.session.handler.anvil.no_container" = "açılmış bir anvil konteyneri yok"
+"%df.session.handler.anvil.filter_index_out_of_bounds" = "filtre string indeksi %v sınırlar dışında"
+"%df.session.handler.anvil.no_input" = "input slotunda eşya yok"
+"%df.session.handler.anvil.not_repairable" = "input eşyası tamir edilebilir/aynı tür değil veya materyal eşyası büyülü kitap değil"
+"%df.session.handler.anvil.no_compatible_enchantments" = "uyumlu büyü yok ama uyumsuz büyüler var"
+"%df.session.handler.anvil.no_action" = "hiçbir işlem yapılmadı"
+"%df.session.handler.anvil.impossible_cost" = "imkansız maliyet"
+"%df.session.handler.anvil.not_enough_xp" = "yeterli deneyim yok"
+"%df.session.handler.anvil.fully_repaired" = "input eşyası zaten tamamen tamir edilmiş"
+
+# --- handler_beacon.go ---
+"%df.session.handler.beacon.no_container" = "açılmış bir beacon konteyneri yok"
+"%df.session.handler.beacon.invalid_payment" = "beacon slotundaki %v eşyası ödeme olarak kullanılamaz"
+"%df.session.handler.beacon.primary_effect_not_allowed" = "seçilen birincil efekte izin verilmiyor: %v, seviye %v için"
+"%df.session.handler.beacon.secondary_effect_not_allowed" = "seçilen ikincil efekte izin verilmiyor: %v, seviye %v için"
+
+# --- handler_block_actor_data.go ---
+"%df.session.handler.block_actor_data.not_in_reach" = "%v konumundaki blok erişim mesafesinde değil"
+"%df.session.handler.block_actor_data.unhandled_id" = "işlenmemiş block actor data ID %v"
+"%df.session.handler.block_actor_data.no_id_tag" = "'id' tagı olmadan block actor data: %v"
+"%df.session.handler.block_actor_data.no_sign" = "sign block actor data konumunda tabela yok"
+"%df.session.handler.block_actor_data.sign.front_text_not_found" = "sign block actor data 'FrontText' tagı bulunamadı veya map değil: %v"
+"%df.session.handler.block_actor_data.sign.back_text_not_found" = "sign block actor data 'BackText' tagı bulunamadı veya map değil: %v"
+"%df.session.handler.block_actor_data.sign.no_text_tag" = "sign block actor data %v tarafı için 'Text' tagı yok"
+"%df.session.handler.block_actor_data.sign.text_not_string" = "sign block actor data %v tarafı için 'Text' tagı string değil: %v"
+"%df.session.handler.block_actor_data.sign.text_too_long" = "sign block actor data metni %v tarafı için 256 karakterden uzun"
+"%df.session.handler.block_actor_data.sign.text_not_utf8" = "sign block actor data metni %v tarafı için geçerli UTF8 değil"
+
+# --- handler_book_edit.go ---
+"%df.session.handler.book_edit.invalid_slot" = "geçersiz envanter slot indeksi %v"
+"%df.session.handler.book_edit.not_writable_book" = "%v envanter slotu yazılabilir bir kitap içermiyor"
+"%df.session.handler.book_edit.page_out_of_bounds" = "%v sayfa numarası sınırlar dışında"
+"%df.session.handler.book_edit.text_too_long" = "metin 256 bayttan uzun olamaz"
+"%df.session.handler.book_edit.page_limit" = "50'nin ötesine sayfa eklenemez"
+"%df.session.handler.book_edit.insert_page" = "%v konumuna sayfa eklenemiyor"
+"%df.session.handler.book_edit.swap_out_of_bounds" = "sayfa numarası sınırlar dışında"
+
+# --- handler_command_request.go ---
+"%df.session.handler.command_request.internal_set" = "command request paketinin internal alanı asla true olmamalıdır"
+
+# --- handler_crafting.go ---
+"%df.session.handler.crafting.not_shaped_or_shapeless" = "%v ağ ID'li tarif shaped veya shapeless değil"
+"%df.session.handler.crafting.not_crafting_table" = "%v ağ ID'li tarif crafting table tarifi değil"
+"%df.session.handler.crafting.times_crafted_min" = "craft sayısı en az 1 olmalıdır"
+"%df.session.handler.crafting.could_not_consume" = "%v tarif: beklenen eşya tüketilemedi: %v"
+"%df.session.handler.crafting.creative_only" = "creative eşyalar yalnızca creative/spectator oyun modunda craft edilebilir"
+"%df.session.handler.crafting.creative_item_missing" = "%v ağ ID'li creative eşya mevcut değil"
+"%df.session.handler.crafting.unexpected_has" = "istemcide beklenmeyen tarif eşyası var: %v"
+"%df.session.handler.crafting.unexpected_match" = "beklenmeyen tarif eşyasıyla eşleştirilmeye çalışıldı: %v"
+"%df.session.handler.crafting.unexpected_item" = "beklenmeyen tarif eşyası: %v"
+"%df.session.handler.crafting.no_matching_recipe" = "crafting grid için eşleşen tarif bulunamadı"
+
+# --- handler_enchanting.go ---
+"%df.session.handler.enchanting.invalid_recipe_id" = "geçersiz tarif ağ ID: %v"
+"%df.session.handler.enchanting.single_item_only" = "enchanting table aynı anda yalnızca bir eşya kabul eder"
+"%df.session.handler.enchanting.not_enchantable" = "büyülenemeyen eşya büyülenemez"
+"%df.session.handler.enchanting.not_enough_levels_requirement" = "gereksinimi karşılamak için yeterli seviye yok"
+"%df.session.handler.enchanting.not_enough_levels_cost" = "maliyeti karşılamak için yeterli seviye yok"
+"%df.session.handler.enchanting.no_lapis" = "lapis lazuli girilmedi"
+"%df.session.handler.enchanting.not_enough_lapis" = "maliyeti karşılamak için yeterli lapis lazuli yok"
+"%df.session.handler.enchanting.panic.should_never_happen" = "asla olmamalıydı"
+
+# --- handler_grindstone.go ---
+"%df.session.handler.grindstone.no_container" = "açılmış bir grindstone konteyneri yok"
+"%df.session.handler.grindstone.empty_input" = "input eşyaları boş"
+"%df.session.handler.grindstone.not_single" = "input eşyaları tekil eşya değil"
+"%df.session.handler.grindstone.same_type" = "input eşyaları aynı tür olmalıdır"
+"%df.session.handler.grindstone.must_be_durable" = "input eşyaları dayanıklı olmalıdır"
+
+# --- handler_interact.go ---
+"%df.session.handler.interact.unexpected_action" = "beklenmeyen interact paket aksiyonu %v"
+
+# --- handler_inventory_transaction.go ---
+"%df.session.handler.inventory_transaction.too_many_sync" = "envanter transaction'ında çok fazla slot senkron isteği"
+"%df.session.handler.inventory_transaction.too_many_slots" = "slot senkron isteğinde çok fazla slot"
+"%df.session.handler.inventory_transaction.verify_normal" = "paket işleniyor: InventoryTransaction: Normal transaction aksiyonları doğrulanıyor: %v"
+"%df.session.handler.inventory_transaction.unhandled_type" = "işlenmemiş envanter transaction türü %v"
+"%df.session.handler.inventory_transaction.drop_two_actions" = "eşya düşürmek için iki aksiyon bekleniyordu, alındı: %v"
+"%df.session.handler.inventory_transaction.non_empty_old" = "transaction aksiyonunda beklenmeyen boş olmayan eski eşya: %v"
+"%df.session.handler.inventory_transaction.empty_old" = "transaction aksiyonunda beklenmeyen boş eski eşya: %v"
+"%df.session.handler.inventory_transaction.unexpected_action" = "drop item transaction'ında beklenmeyen aksiyon türü"
+"%df.session.handler.inventory_transaction.no_drop" = "en az bir eşya düşürülmeliydi, alındı: %v"
+"%df.session.handler.inventory_transaction.too_many_throw" = "%v eşya atılmaya çalışıldı ama slotta yalnızca %v var"
+"%df.session.handler.inventory_transaction.different_thrown" = "atılan eşya slotta tutulan eşyadan farklı: %v atıldı ama %v tutuluyordu"
+"%df.session.handler.inventory_transaction.interact_self" = "geçersiz entity etkileşimi: oyuncular kendileriyle etkileşemez"
+"%df.session.handler.inventory_transaction.no_entity" = "geçersiz entity etkileşimi: runtime ID'ye sahip entity yok"
+"%df.session.handler.inventory_transaction.different_world" = "geçersiz entity etkileşimi: entity aynı dünyada değil (artık)"
+"%df.session.handler.inventory_transaction.unhandled_use_item_on_entity" = "işlenmemiş UseItemOnEntity ActionType %v"
+"%df.session.handler.inventory_transaction.unhandled_use_item" = "işlenmemiş UseItem ActionType %v"
+
+# --- handler_item_stack_request.go ---
+"%df.session.handler.item_stack_request.resolve" = "paket işleniyor: ItemStackRequest: item stack isteği çözümleniyor: %v"
+"%df.session.handler.item_stack_request.unhandled_action" = "işlenmemiş stack istek aksiyonu %v"
+"%df.session.handler.item_stack_request.action" = "%v: %v"
+"%df.session.handler.item_stack_request.source_out_of_sync" = "kaynak slot senkron dışı: %v"
+"%df.session.handler.item_stack_request.incomparable" = "istemci %v eşyasını %v'ye aktarmaya çalıştı ama stackler karşılaştırılamaz"
+"%df.session.handler.item_stack_request.subtract_more" = "istemci eşya sayısından %v çıkarmaya çalıştı ama yalnızca %v var"
+"%df.session.handler.item_stack_request.exceeds_max" = "istemci %v eşyayı %v sayıya eklemeye çalıştı ama maksimum %v"
+"%df.session.handler.item_stack_request.slot_out_of_sync" = "slot senkron dışı: %v"
+"%df.session.handler.item_stack_request.destroy_creative" = "eşyalar yalnızca creative/spectator oyun modunda yok edilebilir"
+"%df.session.handler.item_stack_request.destroy_more" = "istemci %v eşyayı yok etmeye çalıştı ama yalnızca %v mevcut"
+"%df.session.handler.item_stack_request.drop_more" = "istemci %v eşyayı düşürmeye çalıştı ama yalnızca %v mevcut"
+"%df.session.handler.item_stack_request.invalid_result_slot" = "geçersiz bekleyen sonuç slotu: %v"
+"%df.session.handler.item_stack_request.duplicate_result" = "oluşturulan sonuç çoğaltılmaya çalışıldı: %v"
+"%df.session.handler.item_stack_request.too_many_unack" = "çok fazla onaylanmamış istek slotu değişikliği"
+"%df.session.handler.item_stack_request.id_mismatch" = "stack ID uyumsuzluğu: istemci %v bekliyordu ama sunucuda %v vardı"
+"%df.session.handler.item_stack_request.request_not_found" = "slot %v stack isteğine işaret ediyor ama istek bulunamadı"
+"%df.session.handler.item_stack_request.container_not_changed" = "slot %v stack isteği ve %v konteynerine işaret ediyor ama konteyner istekte değiştirilmedi"
+"%df.session.handler.item_stack_request.slot_not_changed" = "slot %v stack isteği, %v konteyner ve %v slotuna işaret ediyor ama slot istekte değiştirilmedi"
+"%df.session.handler.item_stack_request.container_not_found" = "%v ID'li konteyner bulunamadı"
+"%df.session.handler.item_stack_request.container_unable" = "%v ID'li konteyner bulunamıyor"
+"%df.session.handler.item_stack_request.action_cancelled" = "aksiyon iptal edildi"
+
+# --- handler_lectern_update.go ---
+"%df.session.handler.lectern_update.not_in_reach" = "%v konumundaki blok erişim mesafesinde değil"
+"%df.session.handler.lectern_update.not_lectern" = "%v konumundaki blok lectern değil"
+
+# --- handler_loom.go ---
+"%df.session.handler.loom.no_container" = "açılmış bir loom konteyneri yok"
+"%df.session.handler.loom.times_crafted_min" = "craft sayısı en az 1 olmalıdır"
+"%df.session.handler.loom.input_count_low" = "input eşya sayısı craft sayısından az"
+"%df.session.handler.loom.not_banner" = "input eşyası banner değil"
+"%df.session.handler.loom.illager_banner" = "input eşyası illager banner"
+"%df.session.handler.loom.dye_count_low" = "dye eşya sayısı craft sayısından az"
+"%df.session.handler.loom.not_dye" = "dye eşyası dye değil"
+"%df.session.handler.loom.pattern_empty" = "pattern eşyası boş ama pattern gerekli"
+"%df.session.handler.loom.not_pattern" = "pattern eşyası banner pattern değil"
+"%df.session.handler.loom.pattern_mismatch" = "pattern eşyası beklenen pattern ile eşleşmiyor"
+
+# --- handler_mob_equipment.go ---
+"%df.session.handler.mob_equipment.wrong_window" = "slot değişikliğinde yalnızca ana envanter devreye girmeli, window ID %v alındı"
+
+# --- handler_modal_form_response.go ---
+"%df.session.handler.modal_form_response.no_form" = "%v ID'li form şu anda açık değil"
+"%df.session.handler.modal_form_response.submit_error" = "form verisi gönderilirken hata: %v"
+
+# --- handler_npc_request.go ---
+"%df.session.handler.npc_request.submit_error" = "diyalog gönderilirken hata: %v"
+
+# --- handler_player_action.go ---
+"%df.session.handler.player_action.unhandled" = "işlenmemiş ActionType %v"
+
+# --- handler_player_auth_input.go ---
+"%df.session.handler.player_auth_input.nan_inf" = "paket işleniyor: PlayerAuthInput: nan/inf değerleri bulundu. sunucu tarafı değerleri varsayılıyor"
+"%df.session.handler.player_auth_input.resolve_item_stack_request" = "paket işleniyor: PlayerAuthInput: item stack isteği çözümleniyor: %v"
+"%df.session.handler.player_auth_input.flying_flag" = "paket işleniyor: PlayerAuthInput: uçma izni yokken uçma bayrağı etkin"
+"%df.session.handler.player_auth_input.held_item_mismatch" = "paket işleniyor: PlayerAuthInput: UseItemTransaction: gerçek tutulan eşya ile istemci tutulan eşya uyuşmuyor"
+"%df.session.handler.player_auth_input.unhandled_use_item" = "PlayerAuthInput paketi için işlenmemiş UseItem ActionType %v"
+
+# --- handler_player_skin.go ---
+"%df.session.handler.player_skin.decode_error" = "skin çözümlenirken hata: %v"
+
+# --- handler_request_ability.go ---
+"%df.session.handler.request_ability.flying_flag" = "paket işleniyor: RequestAbility: uçma izni yokken uçma bayrağı etkin"
+
+# --- handler_respawn.go ---
+"%df.session.handler.respawn.bad_state" = "respawn durumu her zaman %v olmalıdır, alındı: %v"
+
+# --- handler_server_bound_loading_screen.go ---
+"%df.session.handler.server_bound_loading_screen.bad_id" = "beklenen yükleme ekranı ID %v, alındı %v"
+
+# --- handler_smithing.go ---
+"%df.session.handler.smithing.recipe_not_found" = "%v ağ ID'li tarif mevcut değil"
+"%df.session.handler.smithing.not_smithing_table" = "%v ağ ID'li tarif smithing table tarifi değil"
+"%df.session.handler.smithing.not_smithing" = "%v ağ ID'li tarif smithing tarifi değil"
+"%df.session.handler.smithing.input_mismatch" = "input eşyası beklenen input ile aynı değil"
+"%df.session.handler.smithing.material_mismatch" = "materyal eşyası beklenen materyal ile aynı değil"
+"%df.session.handler.smithing.template_mismatch" = "şablon eşyası beklenen şablon ile aynı değil"
+"%df.session.handler.smithing.not_template" = "şablon eşyası smithing şablonu değil"
+"%df.session.handler.smithing.not_trim_material" = "materyal eşyası armour trim materyali değil"
+"%df.session.handler.smithing.not_trimmable" = "input eşyası trimlenebilir değil"
+
+# --- handler_stonecutter.go ---
+"%df.session.handler.stonecutter.recipe_not_found" = "%v ağ ID'li tarif mevcut değil"
+"%df.session.handler.stonecutter.not_shapeless" = "%v ağ ID'li tarif shapeless değil"
+"%df.session.handler.stonecutter.not_stonecutter" = "%v ağ ID'li tarif stonecutter tarifi değil"
+"%df.session.handler.stonecutter.times_crafted_min" = "craft sayısı en az 1 olmalıdır"
+"%df.session.handler.stonecutter.input_count_low" = "input eşya sayısı craft sayısından az"
+"%df.session.handler.stonecutter.input_mismatch" = "input eşyası beklenen input ile aynı değil"
+
+# --- handler_text.go ---
+"%df.session.handler.text.bad_type" = "TextType her zaman Chat (%v) olmalıdır, alındı: %v"
+"%df.session.handler.text.source_name_mismatch" = "SourceName, DisplayName ile aynı olmalıdır"
+"%df.session.handler.text.xuid_mismatch" = "XUID, oyuncunun XUID'si ile aynı olmalıdır"
+
+# --- protocolToSkin (in player.go) ---
+"%df.session.player.skin.empty_id" = "SkinID boş string olmamalıdır"
+"%df.session.player.skin.invalid_geometry" = "SkinGeometry geçerli bir JSON string değil: %v"
+"%df.session.player.skin.invalid_resource_patch" = "SkinResourcePatch geçerli bir JSON string değil: %v"
+"%df.session.player.skin.invalid_animation_type" = "geçersiz animasyon türü: %v"

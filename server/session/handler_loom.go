@@ -1,8 +1,9 @@
 package session
 
 import (
-	"fmt"
+	"errors"
 	"github.com/df-mc/dragonfly/server/block"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
@@ -21,11 +22,11 @@ const (
 func (h *ItemStackRequestHandler) handleLoomCraft(a *protocol.CraftLoomRecipeStackRequestAction, s *Session, tx *world.Tx) error {
 	// First check if there actually is a loom opened.
 	if _, ok := tx.Block(*s.openedPos.Load()).(block.Loom); !ok || !s.containerOpened.Load() {
-		return fmt.Errorf("no loom container opened")
+		return errors.New(i18n.R("%df.session.handler.loom.no_container"))
 	}
 	timesCrafted := int(a.TimesCrafted)
 	if timesCrafted < 1 {
-		return fmt.Errorf("times crafted must be least 1")
+		return errors.New(i18n.R("%df.session.handler.loom.times_crafted_min"))
 	}
 
 	// Next, check if the input slot has a valid banner item.
@@ -34,14 +35,14 @@ func (h *ItemStackRequestHandler) handleLoomCraft(a *protocol.CraftLoomRecipeSta
 		Slot:      loomInputSlot,
 	}, s, tx)
 	if input.Count() < timesCrafted {
-		return fmt.Errorf("input item count is less than times crafted")
+		return errors.New(i18n.R("%df.session.handler.loom.input_count_low"))
 	}
 	b, ok := input.Item().(block.Banner)
 	if !ok {
-		return fmt.Errorf("input item is not a banner")
+		return errors.New(i18n.R("%df.session.handler.loom.not_banner"))
 	}
 	if b.Illager {
-		return fmt.Errorf("input item is an illager banner")
+		return errors.New(i18n.R("%df.session.handler.loom.illager_banner"))
 	}
 
 	// Do the same with the input dye.
@@ -50,11 +51,11 @@ func (h *ItemStackRequestHandler) handleLoomCraft(a *protocol.CraftLoomRecipeSta
 		Slot:      loomDyeSlot,
 	}, s, tx)
 	if dye.Count() < timesCrafted {
-		return fmt.Errorf("dye item count is less than times crafted")
+		return errors.New(i18n.R("%df.session.handler.loom.dye_count_low"))
 	}
 	d, ok := dye.Item().(item.Dye)
 	if !ok {
-		return fmt.Errorf("dye item is not a dye")
+		return errors.New(i18n.R("%df.session.handler.loom.not_dye"))
 	}
 
 	// The action contains the pattern that the client wanted to apply, so parse the ID and check if it is a valid
@@ -69,14 +70,14 @@ func (h *ItemStackRequestHandler) handleLoomCraft(a *protocol.CraftLoomRecipeSta
 	}, s, tx)
 	if expectedPatternItem, hasPatternItem := expectedPattern.Item(); hasPatternItem {
 		if pattern.Empty() {
-			return fmt.Errorf("pattern item is empty but the pattern is required")
+			return errors.New(i18n.R("%df.session.handler.loom.pattern_empty"))
 		}
 		p, ok := pattern.Item().(item.BannerPattern)
 		if !ok {
-			return fmt.Errorf("pattern item is not a banner pattern")
+			return errors.New(i18n.R("%df.session.handler.loom.not_pattern"))
 		}
 		if expectedPatternItem != p.Type {
-			return fmt.Errorf("pattern item does not match the expected pattern")
+			return errors.New(i18n.R("%df.session.handler.loom.pattern_mismatch"))
 		}
 	}
 

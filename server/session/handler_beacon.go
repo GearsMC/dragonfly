@@ -1,9 +1,11 @@
 package session
 
 import (
+	"errors"
 	"fmt"
 	"github.com/df-mc/dragonfly/server/block"
 	"github.com/df-mc/dragonfly/server/entity/effect"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
@@ -21,25 +23,25 @@ func (h *ItemStackRequestHandler) handleBeaconPayment(a *protocol.BeaconPaymentS
 	}
 	// First check if there actually is a beacon opened.
 	if !s.containerOpened.Load() {
-		return fmt.Errorf("no beacon container opened")
+		return errors.New(i18n.R("%df.session.handler.beacon.no_container"))
 	}
 	pos := *s.openedPos.Load()
 	beacon, ok := tx.Block(pos).(block.Beacon)
 	if !ok {
-		return fmt.Errorf("no beacon container opened")
+		return errors.New(i18n.R("%df.session.handler.beacon.no_container"))
 	}
 
 	// Check if the item present in the beacon slot is valid.
 	payment, _ := h.itemInSlot(slot, s, tx)
 	if payable, ok := payment.Item().(item.BeaconPayment); !ok || !payable.PayableForBeacon() {
-		return fmt.Errorf("item %#v in beacon slot cannot be used as payment", payment)
+		return fmt.Errorf("%s", i18n.R("%df.session.handler.beacon.invalid_payment", fmt.Sprintf("%#v", payment)))
 	}
 
 	// Check if the effects are valid and allowed for the beacon's level.
 	if !h.validBeaconEffect(a.PrimaryEffect, beacon) {
-		return fmt.Errorf("primary effect selected is not allowed: %v for level %v", a.PrimaryEffect, beacon.Level())
+		return fmt.Errorf("%s", i18n.R("%df.session.handler.beacon.primary_effect_not_allowed", a.PrimaryEffect, beacon.Level()))
 	} else if !h.validBeaconEffect(a.SecondaryEffect, beacon) || (beacon.Level() < 4 && a.SecondaryEffect != 0) {
-		return fmt.Errorf("secondary effect selected is not allowed: %v for level %v", a.SecondaryEffect, beacon.Level())
+		return fmt.Errorf("%s", i18n.R("%df.session.handler.beacon.secondary_effect_not_allowed", a.SecondaryEffect, beacon.Level()))
 	}
 
 	primary, pOk := effect.ByID(int(a.PrimaryEffect))

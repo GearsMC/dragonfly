@@ -1,9 +1,10 @@
 package session
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/df-mc/dragonfly/server/block/cube"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
@@ -57,7 +58,7 @@ func handlePlayerAction(action int32, face int32, pos protocol.BlockPos, entityR
 		defer s.swingingArm.Store(false)
 		c.PunchAir()
 	default:
-		return fmt.Errorf("unhandled ActionType %v", action)
+		return errors.New(i18n.R("%df.session.handler.player_action.unhandled", action))
 	}
 	return nil
 }

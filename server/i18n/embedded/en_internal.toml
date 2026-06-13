@@ -1,0 +1,5 @@
+# Dragonfly internal English translations
+# i18n package and runtime error message translations.
+"%df.internal.i18n.parse_toml" = "parse toml %v"
+"%df.internal.i18n.invalid_locale_filename" = "invalid locale filename %v"
+"%df.internal.permission.unknown_state" = "unknown permission state: %v"

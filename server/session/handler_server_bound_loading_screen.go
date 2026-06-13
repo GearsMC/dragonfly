@@ -1,7 +1,8 @@
 package session
 
 import (
-	"fmt"
+	"errors"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 	"sync/atomic"
@@ -24,7 +25,7 @@ func (h *ServerBoundLoadingScreenHandler) Handle(p packet.Packet, s *Session, _ 
 	case !ok || expected == 0:
 		return nil
 	case v != expected:
-		return fmt.Errorf("expected loading screen ID %d, got %d", expected, v)
+		return errors.New(i18n.R("%df.session.handler.server_bound_loading_screen.bad_id", expected, v))
 	case pk.Type == packet.LoadingScreenTypeEnd:
 		s.changingDimension.Store(false)
 		h.expectedID.Store(0)

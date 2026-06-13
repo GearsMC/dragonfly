@@ -49,7 +49,13 @@ func init() {
 		if err := toml.Unmarshal(data, &m); err != nil {
 			continue
 		}
-		lang, err := language.Parse(strings.TrimSuffix(name, ".toml"))
+		// *_<grup>.toml dosyaları: ilk alt çizgiden sonrasını atıp kalanını
+		// dil kodu olarak yorumluyoruz (örn. tr_internal, tr_world -> tr).
+		base := strings.TrimSuffix(name, ".toml")
+		if i := strings.Index(base, "_"); i != -1 {
+			base = base[:i]
+		}
+		lang, err := language.Parse(base)
 		if err != nil {
 			continue
 		}
@@ -115,12 +121,12 @@ func (r *Registry) Load(path string) error {
 	}
 	var entries map[string]string
 	if err := toml.Unmarshal(data, &entries); err != nil {
-		return fmt.Errorf("parse toml %s: %w", path, err)
+		return fmt.Errorf("%s: %w", defaultRegistry.Resolvef(Default(), "%df.internal.i18n.parse_toml", path), err)
 	}
 	base := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 	lang, err := language.Parse(base)
 	if err != nil {
-		return fmt.Errorf("invalid locale filename %s: %w", base, err)
+		return fmt.Errorf("%s: %w", defaultRegistry.Resolvef(Default(), "%df.internal.i18n.invalid_locale_filename", base), err)
 	}
 	r.Register(lang, entries)
 	return nil
@@ -181,6 +187,12 @@ func M(src any, key string, args ...any) string {
 		locale = ls.Locale()
 	}
 	return defaultRegistry.Resolvef(locale, key, args...)
+}
+
+// R, sunucu varsayilan dilinde custom key'i çözümler ve parametreleri yerlestirir.
+// Console loglari ve internal hata mesajlari için kullanilir.
+func R(key string, args ...any) string {
+	return defaultRegistry.Resolvef(Default(), key, args...)
 }
 
 // D, sunucu tarafinda çözümlenen bir chat.Translation döndürür.

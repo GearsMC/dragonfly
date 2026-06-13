@@ -2,7 +2,8 @@ package playerdb
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/player"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/df-mc/goleveldb/leveldb"
@@ -35,7 +36,7 @@ func NewProvider(path string) (*Provider, error) {
 // Save ...
 func (p *Provider) Save(xuid string, d player.Config, w *world.World) error {
 	if xuid == "" {
-		return fmt.Errorf("xuid boş olamaz")
+		return errors.New(i18n.R("%df.playerdb.error.empty_xuid"))
 	}
 	d.XUID = xuid
 	b, err := json.Marshal(p.toJson(d, w))
@@ -48,7 +49,7 @@ func (p *Provider) Save(xuid string, d player.Config, w *world.World) error {
 // Load ...
 func (p *Provider) Load(xuid string, lookupWorld player.WorldLookup) (player.Config, *world.World, error) {
 	if xuid == "" {
-		return player.Config{}, nil, fmt.Errorf("xuid boş olamaz")
+		return player.Config{}, nil, errors.New(i18n.R("%df.playerdb.error.empty_xuid"))
 	}
 	b, err := p.db.Get(playerKey(xuid), nil)
 	if err != nil {

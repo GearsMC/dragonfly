@@ -1,7 +1,8 @@
 package session
 
 import (
-	"fmt"
+	"errors"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
@@ -36,7 +37,7 @@ func (h *InteractHandler) Handle(p packet.Packet, s *Session, _ *world.Tx, c Con
 			},
 		})
 	default:
-		return fmt.Errorf("unexpected interact packet action %v", pk.ActionType)
+		return errors.New(i18n.R("%df.session.handler.interact.unexpected_action", pk.ActionType))
 	}
 	return nil
 }

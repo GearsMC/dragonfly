@@ -65,12 +65,12 @@
 "%df.cmd.enchant.success" = "%v oyuncusunun esyasina %v %v eklendi."
 "%df.cmd.enchant.error.inventory" = "%v oyuncusuna esya verilirken envanter dolu: %v"
 
-"%df.cmd.teleport.self.pos" = "Oyuncu isinlandi: %v → %.1f %.1f %.1f"
-"%df.cmd.teleport.self.player" = "Oyuncu isinlandi: %v → %v"
+"%df.cmd.teleport.self.pos" = "Oyuncu isinlandi: %v -> %.1f %.1f %.1f"
+"%df.cmd.teleport.self.player" = "Oyuncu isinlandi: %v -> %v"
 "%df.cmd.teleport.other.pos" = "%v oyuncu %.1f %.1f %.1f konumuna isinlandi."
-"%df.cmd.teleport.other.pos.single" = "Oyuncu isinlandi: %v → %.1f %.1f %.1f"
+"%df.cmd.teleport.other.pos.single" = "Oyuncu isinlandi: %v -> %.1f %.1f %.1f"
 "%df.cmd.teleport.other.player" = "%v oyuncu %v konumuna isinlandi."
-"%df.cmd.teleport.other.player.single" = "Oyuncu isinlandi: %v → %v"
+"%df.cmd.teleport.other.player.single" = "Oyuncu isinlandi: %v -> %v"
 "%df.cmd.teleport.error.source" = "Isinlanma basarisiz: kaynak oyuncu bulunamadi."
 "%df.cmd.teleport.error.destination" = "Hedef oyuncu bulunamadi."
 "%df.cmd.teleport.error.victim" = "Isinlanacak oyuncu bulunamadi."
@@ -227,3 +227,29 @@
 "%df.performance.unit.ms" = "%vms"
 "%df.performance.unit.us" = "%vus"
 "%df.performance.unit.mib" = "%v MiB"
+
+# Kimlik doğrulama
+"%df.auth.error.empty_xuid" = "doğrulanmış Xbox Live kimliğinin XUID değeri olmalıdır"
+"%df.auth.error.invalid_identity" = "geçersiz Xbox Live kimliği"
+
+# Yapılandırma hataları
+"%df.config.error.create_world_provider" = "dünya sağlayıcısı oluşturulamadi"
+"%df.config.error.load_resources" = "kaynak paketleri yüklenemedi"
+"%df.config.error.read_resources_dir" = "kaynak klasörü okunamadi"
+"%df.config.error.compile_resource" = "kaynak paketi derlenemedi (%v)"
+"%df.config.error.create_player_provider" = "oyuncu sağlayıcısı oluşturulamadi"
+"%df.config.error.create_permission_provider" = "yetki sağlayıcısı oluşturulamadi"
+
+# Dinleyici
+"%df.listener.error.create" = "minecraft dinleyicisi oluşturulamadi: %v"
+"%df.listener.running" = "Dinleyici çalişiyor."
+
+# Yetki
+"%df.permission.error.empty_xuid" = "xuid boş olamaz"
+"%df.permission.error.empty_permission" = "permission boş olamaz"
+
+# Whitelist
+"%df.whitelist.error.empty_xuid" = "XUID boş olamaz"
+"%df.whitelist.error.load" = "whitelist dosyasi okunamadi: %v"
+"%df.whitelist.error.save" = "whitelist dosyasi kaydedilemedi: %v"
+"%df.whitelist.error.marshal" = "whitelist verisi serileştirilemedi: %v"

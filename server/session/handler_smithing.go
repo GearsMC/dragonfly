@@ -1,7 +1,8 @@
 package session
 
 import (
-	"fmt"
+	"errors"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/item/recipe"
 	"github.com/df-mc/dragonfly/server/world"
@@ -22,15 +23,15 @@ func (h *ItemStackRequestHandler) handleSmithing(a *protocol.CraftRecipeStackReq
 	// First, check the recipe and ensure it is valid for the smithing table.
 	craft, ok := s.recipes[a.RecipeNetworkID]
 	if !ok {
-		return fmt.Errorf("recipe with network id %v does not exist", a.RecipeNetworkID)
+		return errors.New(i18n.R("%df.session.handler.smithing.recipe_not_found", a.RecipeNetworkID))
 	}
 	if craft.Block() != "smithing_table" {
-		return fmt.Errorf("recipe with network id %v is not a smithing table recipe", a.RecipeNetworkID)
+		return errors.New(i18n.R("%df.session.handler.smithing.not_smithing_table", a.RecipeNetworkID))
 	}
 	switch craft.(type) {
 	case recipe.SmithingTransform, recipe.SmithingTrim:
 	default:
-		return fmt.Errorf("recipe with network id %v is not a smithing recipe", a.RecipeNetworkID)
+		return errors.New(i18n.R("%df.session.handler.smithing.not_smithing", a.RecipeNetworkID))
 	}
 
 	// Check if the input item and material item match what the recipe requires.
@@ -40,21 +41,21 @@ func (h *ItemStackRequestHandler) handleSmithing(a *protocol.CraftRecipeStackReq
 		Slot:      smithingInputSlot,
 	}, s, tx)
 	if !matchingStacks(input, expectedInputs[0]) {
-		return fmt.Errorf("input item is not the same as expected input")
+		return errors.New(i18n.R("%df.session.handler.smithing.input_mismatch"))
 	}
 	material, _ := h.itemInSlot(protocol.StackRequestSlotInfo{
 		Container: protocol.FullContainerName{ContainerID: protocol.ContainerSmithingTableMaterial},
 		Slot:      smithingMaterialSlot,
 	}, s, tx)
 	if !matchingStacks(material, expectedInputs[1]) {
-		return fmt.Errorf("material item is not the same as expected material")
+		return errors.New(i18n.R("%df.session.handler.smithing.material_mismatch"))
 	}
 	template, _ := h.itemInSlot(protocol.StackRequestSlotInfo{
 		Container: protocol.FullContainerName{ContainerID: protocol.ContainerSmithingTableTemplate},
 		Slot:      smithingTemplateSlot,
 	}, s, tx)
 	if !matchingStacks(template, expectedInputs[2]) {
-		return fmt.Errorf("template item is not the same as expected template")
+		return errors.New(i18n.R("%df.session.handler.smithing.template_mismatch"))
 	}
 
 	// Create the output using the input stack as reference and the recipe's output item type.
@@ -76,14 +77,14 @@ func (h *ItemStackRequestHandler) handleSmithing(a *protocol.CraftRecipeStackReq
 		if t, ok := template.Item().(item.SmithingTemplate); ok {
 			trim.Template = t.Template
 		} else {
-			return fmt.Errorf("template item is not a smithing template")
+			return errors.New(i18n.R("%df.session.handler.smithing.not_template"))
 		}
 		if trim.Material, ok = material.Item().(item.ArmourTrimMaterial); !ok {
-			return fmt.Errorf("material item is not an armour trim material")
+			return errors.New(i18n.R("%df.session.handler.smithing.not_trim_material"))
 		}
 		trimmable, ok := input.Item().(item.Trimmable)
 		if !ok {
-			return fmt.Errorf("input item is not trimmable")
+			return errors.New(i18n.R("%df.session.handler.smithing.not_trimmable"))
 		}
 		return h.createResults(s, tx, input.WithItem(trimmable.WithTrim(trim)))
 	}

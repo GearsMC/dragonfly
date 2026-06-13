@@ -1,8 +1,10 @@
 package playerdb
 
 import (
+	"errors"
 	"fmt"
 	"github.com/df-mc/dragonfly/server/block/cube"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/item/inventory"
 	"github.com/df-mc/dragonfly/server/player"
@@ -15,14 +17,14 @@ import (
 func (p *Provider) fromJson(d jsonData, lookupWorld player.WorldLookup) (player.Config, *world.World, error) {
 	dim, ok := world.DimensionByID(int(d.Dimension))
 	if !ok {
-		return player.Config{}, nil, fmt.Errorf("bilinmeyen oyuncu dimension kimliği: %d", d.Dimension)
+		return player.Config{}, nil, errors.New(i18n.R("%df.playerdb.error.unknown_dimension_id", d.Dimension))
 	}
 	w := lookupWorld(d.World, dim)
 	if w == nil {
 		if d.World == "" {
-			return player.Config{}, nil, fmt.Errorf("eski oyuncu dünyası dimension %d içinde çözümlenemedi", d.Dimension)
+			return player.Config{}, nil, errors.New(i18n.R("%df.playerdb.error.legacy_world_dimension", d.Dimension))
 		}
-		return player.Config{}, nil, fmt.Errorf("oyuncu dünyası %q dimension %d içinde çözümlenemedi", d.World, d.Dimension)
+		return player.Config{}, nil, errors.New(i18n.R("%df.playerdb.error.world_dimension_resolve", fmt.Sprintf("%q", d.World), d.Dimension))
 	}
 	mode, _ := world.GameModeByID(int(d.GameMode))
 	name := d.LastKnownName

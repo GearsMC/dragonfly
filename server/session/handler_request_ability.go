@@ -1,6 +1,7 @@
 package session
 
 import (
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 )
@@ -12,8 +13,8 @@ type RequestAbilityHandler struct{}
 func (a RequestAbilityHandler) Handle(p packet.Packet, s *Session, _ *world.Tx, c Controllable) error {
 	pk := p.(*packet.RequestAbility)
 	if pk.Ability == packet.AbilityFlying {
-		if !c.GameMode().AllowsFlying() {
-			s.conf.Log.Debug("process packet: RequestAbility: flying flag enabled while unable to fly")
+		if !canFly(c, c.GameMode()) {
+			s.conf.Log.Debug(i18n.R("%df.session.handler.request_ability.flying_flag"))
 			s.SendAbilities(c)
 			return nil
 		}

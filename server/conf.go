@@ -316,22 +316,22 @@ func (uc UserConfig) Config(log *slog.Logger) (Config, error) {
 	if uc.World.SaveData {
 		conf.WorldProvider, err = mcdb.Config{Log: log}.Open(uc.World.Folder)
 		if err != nil {
-			return conf, fmt.Errorf("create world provider: %w", err)
+			return conf, fmt.Errorf("%s: %w", i18n.R("%df.config.error.create_world_provider"), err)
 		}
 	}
 	conf.Resources, err = loadResources(uc.Resources.Folder)
 	if err != nil {
-		return conf, fmt.Errorf("load resources: %w", err)
+		return conf, fmt.Errorf("%s: %w", i18n.R("%df.config.error.load_resources"), err)
 	}
 	if uc.Players.SaveData {
 		conf.PlayerProvider, err = playerdb.NewProvider(uc.Players.Folder)
 		if err != nil {
-			return conf, fmt.Errorf("create player provider: %w", err)
+			return conf, fmt.Errorf("%s: %w", i18n.R("%df.config.error.create_player_provider"), err)
 		}
 	}
 	operatorStore, err := permission.NewFileOperatorStore(uc.Permissions.OperatorsFile)
 	if err != nil {
-		return conf, fmt.Errorf("create permission provider: %w", err)
+		return conf, fmt.Errorf("%s: %w", i18n.R("%df.config.error.create_permission_provider"), err)
 	}
 	conf.Permissions = permission.NewManager(operatorStore)
 	conf.Listeners = append(conf.Listeners, uc.listenerFunc)
@@ -344,13 +344,13 @@ func loadResources(dir string) ([]*resource.Pack, error) {
 
 	resources, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, fmt.Errorf("read dir: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.R("%df.config.error.read_resources_dir"), err)
 	}
 	packs := make([]*resource.Pack, len(resources))
 	for i, entry := range resources {
 		packs[i], err = resource.ReadPath(filepath.Join(dir, entry.Name()))
 		if err != nil {
-			return nil, fmt.Errorf("compile resource (%v): %w", entry.Name(), err)
+			return nil, fmt.Errorf("%s: %w", i18n.R("%df.config.error.compile_resource", entry.Name()), err)
 		}
 	}
 	return packs, nil

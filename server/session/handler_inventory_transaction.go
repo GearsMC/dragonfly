@@ -1,9 +1,11 @@
 package session
 
 import (
+	"errors"
 	"fmt"
 	"github.com/df-mc/dragonfly/server/block/cube"
 	"github.com/df-mc/dragonfly/server/event"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/item/inventory"
 	"github.com/df-mc/dragonfly/server/world"
@@ -19,7 +21,7 @@ func (h *InventoryTransactionHandler) Handle(p packet.Packet, s *Session, tx *wo
 	pk := p.(*packet.InventoryTransaction)
 
 	if len(pk.LegacySetItemSlots) > 2 {
-		return fmt.Errorf("too many slot sync requests in inventory transaction")
+		return errors.New(i18n.R("%df.session.handler.inventory_transaction.too_many_sync"))
 	}
 
 	defer func() {
@@ -27,7 +29,7 @@ func (h *InventoryTransactionHandler) Handle(p packet.Packet, s *Session, tx *wo
 		// Handling these requests is necessary to ensure the client's inventory remains in sync with the server.
 		for _, slot := range pk.LegacySetItemSlots {
 			if len(slot.Slots) > 2 {
-				err = fmt.Errorf("too many slots in slot sync request")
+				err = errors.New(i18n.R("%df.session.handler.inventory_transaction.too_many_slots"))
 				return
 			}
 			switch slot.ContainerID {
@@ -49,7 +51,7 @@ func (h *InventoryTransactionHandler) Handle(p packet.Packet, s *Session, tx *wo
 		// Always resend inventories with normal transactions. Most of the time we do not use these
 		// transactions, so we're best off making sure the client and server stay in sync.
 		if err := h.handleNormalTransaction(pk, s, c); err != nil {
-			s.conf.Log.Debug("process packet: InventoryTransaction: verify Normal transaction actions: " + err.Error())
+			s.conf.Log.Debug(i18n.R("%df.session.handler.inventory_transaction.verify_normal", err))
 		}
 		return
 	case *protocol.MismatchTransactionData:
@@ -72,7 +74,7 @@ func (h *InventoryTransactionHandler) Handle(p packet.Packet, s *Session, tx *wo
 		}
 		return h.handleReleaseItemTransaction(c)
 	}
-	return fmt.Errorf("unhandled inventory transaction type %T", pk.TransactionData)
+	return fmt.Errorf("%s", i18n.R("%df.session.handler.inventory_transaction.unhandled_type", fmt.Sprintf("%T", pk.TransactionData)))
 }
 
 // resendInventories resends all inventories of the player.
@@ -86,7 +88,7 @@ func (h *InventoryTransactionHandler) resendInventories(s *Session) {
 // handleNormalTransaction ...
 func (h *InventoryTransactionHandler) handleNormalTransaction(pk *packet.InventoryTransaction, s *Session, c Controllable) error {
 	if len(pk.Actions) != 2 {
-		return fmt.Errorf("expected two actions for dropping an item, got %d", len(pk.Actions))
+		return errors.New(i18n.R("%df.session.handler.inventory_transaction.drop_two_actions", len(pk.Actions)))
 	}
 
 	var (
@@ -98,28 +100,28 @@ func (h *InventoryTransactionHandler) handleNormalTransaction(pk *packet.Invento
 		switch {
 		case action.SourceType == protocol.InventoryActionSourceWorld && action.InventorySlot == 0:
 			if old := stackToItem(s.br, action.OldItem.Stack); !old.Empty() {
-				return fmt.Errorf("unexpected non-empty old item in transaction action: %#v", action.OldItem)
+				return fmt.Errorf("%s", i18n.R("%df.session.handler.inventory_transaction.non_empty_old", fmt.Sprintf("%#v", action.OldItem)))
 			}
 			count = int(action.NewItem.Stack.Count)
 		case action.SourceType == protocol.InventoryActionSourceContainer && action.WindowID == protocol.WindowIDInventory:
 			if expected = stackToItem(s.br, action.OldItem.Stack); expected.Empty() {
-				return fmt.Errorf("unexpected empty old item in transaction action: %#v", action.OldItem)
+				return fmt.Errorf("%s", i18n.R("%df.session.handler.inventory_transaction.empty_old", fmt.Sprintf("%#v", action.OldItem)))
 			}
 			slot = int(action.InventorySlot)
 		default:
-			return fmt.Errorf("unexpected action type in drop item transaction")
+			return errors.New(i18n.R("%df.session.handler.inventory_transaction.unexpected_action"))
 		}
 	}
 
 	actual, _ := s.inv.Item(slot)
 	if count < 1 {
-		return fmt.Errorf("expected at least one item to be dropped, got %d", count)
+		return errors.New(i18n.R("%df.session.handler.inventory_transaction.no_drop", count))
 	}
 	if count > actual.Count() {
-		return fmt.Errorf("tried to throw %v items, but held only %v in slot", count, actual.Count())
+		return errors.New(i18n.R("%df.session.handler.inventory_transaction.too_many_throw", count, actual.Count()))
 	}
 	if !expected.Equal(actual) {
-		return fmt.Errorf("different item thrown than held in slot: %#v was thrown but held %#v", expected, actual)
+		return fmt.Errorf("%s", i18n.R("%df.session.handler.inventory_transaction.different_thrown", fmt.Sprintf("%#v", expected), fmt.Sprintf("%#v", actual)))
 	}
 
 	// Explicitly don't re-use the thrown variable. This item was supplied by the user, and if some
@@ -141,19 +143,19 @@ func (h *InventoryTransactionHandler) handleUseItemOnEntityTransaction(data *pro
 	defer s.swingingArm.Store(false)
 
 	if data.TargetEntityRuntimeID == selfEntityRuntimeID {
-		return fmt.Errorf("invalid entity interaction: players cannot interact with themselves")
+		return errors.New(i18n.R("%df.session.handler.inventory_transaction.interact_self"))
 	}
 
 	handle, ok := s.entityFromRuntimeID(data.TargetEntityRuntimeID)
 	if !ok {
 		// In some cases, for example when a falling block entity solidifies, latency may allow attacking an entity that
 		// no longer exists server side. This is expected, so we shouldn't kick the player.
-		s.conf.Log.Debug("invalid entity interaction: no entity with runtime ID", "ID", data.TargetEntityRuntimeID)
+		s.conf.Log.Debug(i18n.R("%df.session.handler.inventory_transaction.no_entity"), "ID", data.TargetEntityRuntimeID)
 		return nil
 	}
 	e, ok := handle.Entity(tx)
 	if !ok {
-		s.conf.Log.Debug("invalid entity interaction: entity is not in the same world (anymore)", "ID", data.TargetEntityRuntimeID)
+		s.conf.Log.Debug(i18n.R("%df.session.handler.inventory_transaction.different_world"), "ID", data.TargetEntityRuntimeID)
 		return nil
 	}
 	var valid bool
@@ -163,7 +165,7 @@ func (h *InventoryTransactionHandler) handleUseItemOnEntityTransaction(data *pro
 	case protocol.UseItemOnEntityActionAttack:
 		valid = c.AttackEntity(e)
 	default:
-		return fmt.Errorf("unhandled UseItemOnEntity ActionType %v", data.ActionType)
+		return errors.New(i18n.R("%df.session.handler.inventory_transaction.unhandled_use_item_on_entity", data.ActionType))
 	}
 	if !valid {
 		slot := int(*s.heldSlot)
@@ -193,7 +195,7 @@ func (h *InventoryTransactionHandler) handleUseItemTransaction(data *protocol.Us
 	case protocol.UseItemActionClickAir:
 		c.UseItem()
 	default:
-		return fmt.Errorf("unhandled UseItem ActionType %v", data.ActionType)
+		return errors.New(i18n.R("%df.session.handler.inventory_transaction.unhandled_use_item", data.ActionType))
 	}
 	return nil
 }

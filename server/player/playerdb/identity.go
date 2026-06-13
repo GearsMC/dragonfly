@@ -3,10 +3,10 @@ package playerdb
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/player"
 	"github.com/df-mc/goleveldb/leveldb"
 	"github.com/google/uuid"
@@ -22,7 +22,7 @@ type identityRecord struct {
 // RememberIdentity, oyuncunun güncel ismini ve UUID bilgisini XUID merkezli ters arama indeksine yazar.
 func (p *Provider) RememberIdentity(identity player.Identity) error {
 	if identity.XUID == "" {
-		return fmt.Errorf("xuid boş olamaz")
+		return errors.New(i18n.R("%df.playerdb.error.empty_xuid"))
 	}
 	identity.LastKnownName = strings.TrimSpace(identity.LastKnownName)
 	if identity.LastSeen.IsZero() {
@@ -105,7 +105,7 @@ func identityRecordFrom(identity player.Identity) identityRecord {
 
 func (record identityRecord) identity() (player.Identity, error) {
 	if record.XUID == "" {
-		return player.Identity{}, fmt.Errorf("identity xuid boş olamaz")
+		return player.Identity{}, errors.New(i18n.R("%df.playerdb.error.identity_empty_xuid"))
 	}
 	id := uuid.Nil
 	if record.UUID != "" {

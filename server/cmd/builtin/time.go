@@ -9,14 +9,44 @@ import (
 	"github.com/df-mc/dragonfly/server/world"
 )
 
+// parseTime, "day", "night" gibi ön ayarları veya düz sayıyı int'e çevirir.
+// Hata durumunda output'a yazıp -1 döner.
+func parseTime(src cmd.Source, output *cmd.Output, value string) int {
+	switch value {
+	case "day":
+		return 1000
+	case "night":
+		return 13000
+	case "midnight":
+		return 18000
+	case "noon":
+		return 6000
+	case "sunrise":
+		return 23000
+	case "sunset":
+		return 12000
+	default:
+		n, err := strconv.Atoi(value)
+		if err != nil {
+			output.Errorm(src, "%df.cmd.time.error.value", value)
+			return -1
+		}
+		return n
+	}
+}
+
 // TimeSetCommand, /time set <değer> komutu.
 type TimeSetCommand struct {
-	Value int32
+	Value string
 }
 
 func (c TimeSetCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
-	tx.World().SetTime(int(c.Value))
-	output.Printt(i18n.T("%commands.time.set", 1), c.Value)
+	t := parseTime(src, output, c.Value)
+	if t < 0 {
+		return
+	}
+	tx.World().SetTime(t)
+	output.Printt(i18n.T("%commands.time.set", 1), t)
 	output.SetBroadcastScope(cmd.BroadcastPermitted).
 		SetRequiredPermissions(permission.CommandTime)
 }
@@ -69,27 +99,9 @@ type TimeDirectCommand struct {
 }
 
 func (c TimeDirectCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
-	var t int
-	switch c.Value {
-	case "day":
-		t = 1000
-	case "night":
-		t = 13000
-	case "midnight":
-		t = 18000
-	case "noon":
-		t = 6000
-	case "sunrise":
-		t = 23000
-	case "sunset":
-		t = 12000
-	default:
-		n, err := strconv.Atoi(c.Value)
-		if err != nil {
-			output.Errorm(src, "%df.cmd.time.error.value", c.Value)
-			return
-		}
-		t = n
+	t := parseTime(src, output, c.Value)
+	if t < 0 {
+		return
 	}
 	tx.World().SetTime(t)
 	output.Printt(i18n.T("%commands.time.set", 1), t)

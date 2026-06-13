@@ -227,3 +227,29 @@
 "%df.performance.unit.ms" = "%vms"
 "%df.performance.unit.us" = "%vus"
 "%df.performance.unit.mib" = "%v MiB"
+
+# Authentication
+"%df.auth.error.empty_xuid" = "authenticated Xbox Live identity must have an XUID"
+"%df.auth.error.invalid_identity" = "invalid Xbox Live identity"
+
+# Config errors
+"%df.config.error.create_world_provider" = "create world provider"
+"%df.config.error.load_resources" = "load resources"
+"%df.config.error.read_resources_dir" = "read resources directory"
+"%df.config.error.compile_resource" = "compile resource (%v)"
+"%df.config.error.create_player_provider" = "create player provider"
+"%df.config.error.create_permission_provider" = "create permission provider"
+
+# Listener
+"%df.listener.error.create" = "create minecraft listener: %v"
+"%df.listener.running" = "Listener running."
+
+# Permission
+"%df.permission.error.empty_xuid" = "xuid cannot be empty"
+"%df.permission.error.empty_permission" = "permission cannot be empty"
+
+# Whitelist
+"%df.whitelist.error.empty_xuid" = "XUID cannot be empty"
+"%df.whitelist.error.load" = "failed to read whitelist file: %v"
+"%df.whitelist.error.save" = "failed to save whitelist file: %v"
+"%df.whitelist.error.marshal" = "failed to marshal whitelist data: %v"

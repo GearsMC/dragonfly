@@ -1,6 +1,10 @@
 package permission
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/df-mc/dragonfly/server/i18n"
+)
 
 // State, bir permission sorgusunun üç durumlu sonucudur.
 // Undefined, permission için açık karar verilmediğini belirtir.
@@ -44,7 +48,7 @@ func (s *State) UnmarshalText(text []byte) error {
 	case "undefined", "":
 		*s = Undefined
 	default:
-		return fmt.Errorf("bilinmeyen permission durumu: %q", string(text))
+		return fmt.Errorf("%s", i18n.R("%df.internal.permission.unknown_state", fmt.Sprintf("%q", string(text))))
 	}
 	return nil
 }

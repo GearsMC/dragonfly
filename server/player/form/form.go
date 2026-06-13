@@ -3,11 +3,13 @@ package form
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
 	"unicode/utf8"
 
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 )
 
@@ -43,7 +45,7 @@ func (f Custom) MarshalJSON() ([]byte, error) {
 func New(submittable Submittable, title ...any) Custom {
 	t := reflect.TypeOf(submittable)
 	if t.Kind() != reflect.Struct {
-		panic("submittable must be struct")
+		panic(i18n.R("%df.form.panic.submittable_struct"))
 	}
 	f := Custom{title: format(title), submittable: submittable}
 	f.verify()
@@ -90,7 +92,7 @@ func (f Custom) SubmitJSON(b []byte, submitter Submitter, tx *world.Tx) error {
 
 	var data []any
 	if err := dec.Decode(&data); err != nil {
-		return fmt.Errorf("error decoding JSON data to slice: %w", err)
+		return fmt.Errorf("%s: %w", i18n.R("%df.form.error.decode_json_slice"), err)
 	}
 
 	v := reflect.New(reflect.TypeOf(f.submittable)).Elem()
@@ -103,7 +105,7 @@ func (f Custom) SubmitJSON(b []byte, submitter Submitter, tx *world.Tx) error {
 		}
 		e := fieldV.Interface().(Element)
 		if len(data) == 0 {
-			return fmt.Errorf("form JSON data array does not have enough values")
+			return errors.New(i18n.R("%df.form.error.json_not_enough_values"))
 		}
 		if elementReadonly(e) {
 			data = data[1:]
@@ -111,7 +113,7 @@ func (f Custom) SubmitJSON(b []byte, submitter Submitter, tx *world.Tx) error {
 		}
 		elem, err := f.parseValue(e, data[0])
 		if err != nil {
-			return fmt.Errorf("error parsing form response value: %w", err)
+			return fmt.Errorf("%s: %w", i18n.R("%df.form.error.parse_response"), err)
 		}
 		fieldV.Set(elem)
 		data = data[1:]
@@ -142,26 +144,26 @@ func (f Custom) parseValue(elem Element, s any) (reflect.Value, error) {
 	case Input:
 		element.value, ok = s.(string)
 		if !ok {
-			return value, fmt.Errorf("value %v is not allowed for input element", s)
+			return value, errors.New(i18n.R("%df.form.error.value_input", s))
 		}
 		if !utf8.ValidString(element.value) {
-			return value, fmt.Errorf("value %v is not valid UTF8", s)
+			return value, errors.New(i18n.R("%df.form.error.value_not_utf8", s))
 		}
 		value = reflect.ValueOf(element)
 	case Toggle:
 		element.value, ok = s.(bool)
 		if !ok {
-			return value, fmt.Errorf("value %v is not allowed for toggle element", s)
+			return value, errors.New(i18n.R("%df.form.error.value_toggle", s))
 		}
 		value = reflect.ValueOf(element)
 	case Slider:
 		v, ok := s.(json.Number)
 		f, err := v.Float64()
 		if !ok || err != nil {
-			return value, fmt.Errorf("value %v is not allowed for slider element", s)
+			return value, errors.New(i18n.R("%df.form.error.value_slider", s))
 		}
 		if f > element.Max || f < element.Min {
-			return value, fmt.Errorf("slider value %v is out of range %v-%v", f, element.Min, element.Max)
+			return value, errors.New(i18n.R("%df.form.error.slider_out_of_range", f, element.Min, element.Max))
 		}
 		element.value = f
 		value = reflect.ValueOf(element)
@@ -169,10 +171,10 @@ func (f Custom) parseValue(elem Element, s any) (reflect.Value, error) {
 		v, ok := s.(json.Number)
 		f, err := v.Int64()
 		if !ok || err != nil {
-			return value, fmt.Errorf("value %v is not allowed for dropdown element", s)
+			return value, errors.New(i18n.R("%df.form.error.value_dropdown", s))
 		}
 		if f < 0 || int(f) >= len(element.Options) {
-			return value, fmt.Errorf("dropdown value %v is out of range %v-%v", f, 0, len(element.Options)-1)
+			return value, errors.New(i18n.R("%df.form.error.dropdown_out_of_range", f, 0, len(element.Options)-1))
 		}
 		element.value = int(f)
 		value = reflect.ValueOf(element)
@@ -180,10 +182,10 @@ func (f Custom) parseValue(elem Element, s any) (reflect.Value, error) {
 		v, ok := s.(json.Number)
 		f, err := v.Int64()
 		if !ok || err != nil {
-			return value, fmt.Errorf("value %v is not allowed for dropdown element", s)
+			return value, errors.New(i18n.R("%df.form.error.value_dropdown", s))
 		}
 		if f < 0 || int(f) >= len(element.Options) {
-			return value, fmt.Errorf("dropdown value %v is out of range %v-%v", f, 0, len(element.Options)-1)
+			return value, errors.New(i18n.R("%df.form.error.dropdown_out_of_range", f, 0, len(element.Options)-1))
 		}
 		element.value = int(f)
 		value = reflect.ValueOf(element)
@@ -205,7 +207,7 @@ func (f Custom) verify() {
 			continue
 		}
 		if !t.Field(i).Type.Implements(el) {
-			panic("all exported fields must implement form.Element interface")
+			panic(i18n.R("%df.form.panic.exported_fields_element"))
 		}
 	}
 }

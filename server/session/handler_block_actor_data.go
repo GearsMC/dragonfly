@@ -5,6 +5,7 @@ import (
 	"github.com/df-mc/dragonfly/server/block"
 	"github.com/df-mc/dragonfly/server/block/cube"
 	"github.com/df-mc/dragonfly/server/entity"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/go-gl/mathgl/mgl64"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
@@ -22,20 +23,20 @@ func (b BlockActorDataHandler) Handle(p packet.Packet, s *Session, tx *world.Tx,
 	if id, ok := pk.NBTData["id"]; ok {
 		pos := blockPosFromProtocol(pk.Position)
 		if !canReach(c, pos.Vec3Middle()) {
-			return fmt.Errorf("block at %v is not within reach", pos)
+			return fmt.Errorf("%s", i18n.R("%df.session.handler.block_actor_data.not_in_reach", pos))
 		}
 		if id == "Sign" {
 			return b.handleSign(pk, pos, s, tx, c)
 		}
-		return fmt.Errorf("unhandled block actor data ID %v", id)
+		return fmt.Errorf("%s", i18n.R("%df.session.handler.block_actor_data.unhandled_id", id))
 	}
-	return fmt.Errorf("block actor data without 'id' tag: %v", pk.NBTData)
+	return fmt.Errorf("%s", i18n.R("%df.session.handler.block_actor_data.no_id_tag", pk.NBTData))
 }
 
 // handleSign handles the BlockActorData packet sent when editing a sign.
 func (b BlockActorDataHandler) handleSign(pk *packet.BlockActorData, pos cube.Pos, s *Session, tx *world.Tx, co Controllable) error {
 	if _, ok := tx.Block(pos).(block.Sign); !ok {
-		s.conf.Log.Debug("no sign at position of sign block actor data", "pos", pos.String())
+		s.conf.Log.Debug(i18n.R("%df.session.handler.block_actor_data.no_sign"), "pos", pos.String())
 		return nil
 	}
 
@@ -60,14 +61,14 @@ func (b BlockActorDataHandler) textFromNBTData(data map[string]any, frontSide bo
 	if frontSide {
 		frontSide, ok := data["FrontText"].(map[string]any)
 		if !ok {
-			return "", fmt.Errorf("sign block actor data 'FrontText' tag was not found or was not a map: %#v", data["FrontText"])
+			return "", fmt.Errorf("%s", i18n.R("%df.session.handler.block_actor_data.sign.front_text_not_found", fmt.Sprintf("%#v", data["FrontText"])))
 		}
 		sideData = frontSide
 		side = "front"
 	} else {
 		backSide, ok := data["BackText"].(map[string]any)
 		if !ok {
-			return "", fmt.Errorf("sign block actor data 'BackText' tag was not found or was not a map: %#v", data["BackText"])
+			return "", fmt.Errorf("%s", i18n.R("%df.session.handler.block_actor_data.sign.back_text_not_found", fmt.Sprintf("%#v", data["BackText"])))
 		}
 		sideData = backSide
 		side = "back"
@@ -75,19 +76,19 @@ func (b BlockActorDataHandler) textFromNBTData(data map[string]any, frontSide bo
 	var text string
 	pkText, ok := sideData["Text"]
 	if !ok {
-		return "", fmt.Errorf("sign block actor data had no 'Text' tag for side %s", side)
+		return "", fmt.Errorf("%s", i18n.R("%df.session.handler.block_actor_data.sign.no_text_tag", side))
 	}
 	if text, ok = pkText.(string); !ok {
-		return "", fmt.Errorf("sign block actor data 'Text' tag was not a string for side %s: %#v", side, pkText)
+		return "", fmt.Errorf("%s", i18n.R("%df.session.handler.block_actor_data.sign.text_not_string", side, fmt.Sprintf("%#v", pkText)))
 	}
 
 	// Verify that the text was valid. It must be valid UTF8 and not more than 100 characters long.
 	text = strings.TrimRight(text, "\n")
 	if len(text) > 256 {
-		return "", fmt.Errorf("sign block actor data text was longer than 256 characters for side %s", side)
+		return "", fmt.Errorf("%s", i18n.R("%df.session.handler.block_actor_data.sign.text_too_long", side))
 	}
 	if !utf8.ValidString(text) {
-		return "", fmt.Errorf("sign block actor data text was not valid UTF8 for side %s", side)
+		return "", fmt.Errorf("%s", i18n.R("%df.session.handler.block_actor_data.sign.text_not_utf8", side))
 	}
 	return text, nil
 }

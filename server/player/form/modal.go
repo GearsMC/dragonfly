@@ -3,6 +3,7 @@ package form
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"reflect"
 )
@@ -22,7 +23,7 @@ type Modal struct {
 func NewModal(submittable ModalSubmittable, title ...any) Modal {
 	t := reflect.TypeOf(submittable)
 	if t.Kind() != reflect.Struct {
-		panic("submittable must be struct")
+		panic(i18n.R("%df.form.panic.submittable_struct"))
 	}
 	m := Modal{title: format(title), submittable: submittable}
 	m.verify()
@@ -79,7 +80,7 @@ func (m Modal) SubmitJSON(b []byte, submitter Submitter, tx *world.Tx) error {
 
 	var value bool
 	if err := json.Unmarshal(b, &value); err != nil {
-		return fmt.Errorf("error parsing JSON as bool: %w", err)
+		return fmt.Errorf("%s: %w", i18n.R("%df.form.error.parse_json_bool"), err)
 	}
 	if value {
 		m.submittable.Submit(submitter, m.Buttons()[0], tx)
@@ -119,11 +120,11 @@ func (m Modal) verify() {
 			continue
 		}
 		if _, ok := v.Field(i).Interface().(Button); !ok {
-			panic("both exported fields must be of the type form.Button")
+			panic(i18n.R("%df.form.panic.exported_fields_button_modal"))
 		}
 		count++
 	}
 	if count != 2 {
-		panic("modal form must have exactly two exported fields of the type form.Button")
+		panic(i18n.R("%df.form.panic.modal_two_buttons"))
 	}
 }

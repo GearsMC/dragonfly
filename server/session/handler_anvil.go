@@ -1,10 +1,11 @@
 package session
 
 import (
-	"fmt"
+	"errors"
 	"math/rand/v2"
 
 	"github.com/df-mc/dragonfly/server/block"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/df-mc/dragonfly/server/world/sound"
@@ -23,16 +24,16 @@ const (
 func (h *ItemStackRequestHandler) handleCraftRecipeOptional(a *protocol.CraftRecipeOptionalStackRequestAction, s *Session, filterStrings []string, co Controllable, tx *world.Tx) (err error) {
 	// First check if there actually is an anvil opened.
 	if !s.containerOpened.Load() {
-		return fmt.Errorf("no anvil container opened")
+		return errors.New(i18n.R("%df.session.handler.anvil.no_container"))
 	}
 
 	pos := *s.openedPos.Load()
 	anvil, ok := tx.Block(pos).(block.Anvil)
 	if !ok {
-		return fmt.Errorf("no anvil container opened")
+		return errors.New(i18n.R("%df.session.handler.anvil.no_container"))
 	}
 	if len(filterStrings) < int(a.FilterStringIndex) {
-		return fmt.Errorf("filter string index %v is out of bounds", a.FilterStringIndex)
+		return errors.New(i18n.R("%df.session.handler.anvil.filter_index_out_of_bounds", a.FilterStringIndex))
 	}
 
 	input, _ := h.itemInSlot(protocol.StackRequestSlotInfo{
@@ -40,7 +41,7 @@ func (h *ItemStackRequestHandler) handleCraftRecipeOptional(a *protocol.CraftRec
 		Slot:      anvilInputSlot,
 	}, s, tx)
 	if input.Empty() {
-		return fmt.Errorf("no item in input input slot")
+		return errors.New(i18n.R("%df.session.handler.anvil.no_input"))
 	}
 	material, _ := h.itemInSlot(protocol.StackRequestSlotInfo{
 		Container: protocol.FullContainerName{ContainerID: protocol.ContainerAnvilMaterial},
@@ -71,7 +72,7 @@ func (h *ItemStackRequestHandler) handleCraftRecipeOptional(a *protocol.CraftRec
 			// invalid scenario, and we should return an error.
 			enchantedBook := book && len(material.Enchantments()) > 0
 			if !enchantedBook && (input.Item() != material.Item() || !durable) {
-				return fmt.Errorf("input item is not repairable/same type or material item is not an enchanted book")
+				return errors.New(i18n.R("%df.session.handler.anvil.not_repairable"))
 			}
 
 			// If the material is another durable item, we just need to increase the durability of the result by the
@@ -87,7 +88,7 @@ func (h *ItemStackRequestHandler) handleCraftRecipeOptional(a *protocol.CraftRec
 			// If we don't have any compatible enchantments and the input item isn't durable, then this is an invalid
 			// scenario, and we should return an error.
 			if !durable && hasIncompatible && !hasCompatible {
-				return fmt.Errorf("no compatible enchantments but have incompatible ones")
+				return errors.New(i18n.R("%df.session.handler.anvil.no_compatible_enchantments"))
 			}
 		}
 	}
@@ -102,7 +103,7 @@ func (h *ItemStackRequestHandler) handleCraftRecipeOptional(a *protocol.CraftRec
 	// Calculate the total cost. (action cost + anvil cost)
 	cost := actionCost + anvilCost
 	if cost <= 0 {
-		return fmt.Errorf("no action was taken")
+		return errors.New(i18n.R("%df.session.handler.anvil.no_action"))
 	}
 
 	// If our only action was renaming, the cost should never exceed 40.
@@ -113,13 +114,13 @@ func (h *ItemStackRequestHandler) handleCraftRecipeOptional(a *protocol.CraftRec
 	// We can bypass the "impossible cost" limit if we're in creative mode.
 	c := co.GameMode().CreativeInventory()
 	if cost >= 40 && !c {
-		return fmt.Errorf("impossible cost")
+		return errors.New(i18n.R("%df.session.handler.anvil.impossible_cost"))
 	}
 
 	// Ensure we have enough levels (or if we're in creative mode, ignore the cost) to perform the action.
 	level := co.ExperienceLevel()
 	if level < cost && !c {
-		return fmt.Errorf("not enough experience")
+		return errors.New(i18n.R("%df.session.handler.anvil.not_enough_xp"))
 	} else if !c {
 		co.SetExperienceLevel(level - cost)
 	}
@@ -174,7 +175,7 @@ func repairItemWithMaterial(input item.Stack, material item.Stack, result item.S
 	// Calculate the durability delta using the maximum durability and the current durability.
 	delta := min(input.MaxDurability()-input.Durability(), input.MaxDurability()/4)
 	if delta <= 0 {
-		return item.Stack{}, 0, 0, fmt.Errorf("input item is already fully repaired")
+		return item.Stack{}, 0, 0, errors.New(i18n.R("%df.session.handler.anvil.fully_repaired"))
 	}
 
 	// While the durability delta is more than zero and the repaired count is under the material count, increase

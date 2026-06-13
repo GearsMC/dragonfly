@@ -14,6 +14,7 @@ import (
 
 	"github.com/df-mc/dragonfly/server/block/cube"
 	"github.com/df-mc/dragonfly/server/event"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/internal/sliceutil"
 	"github.com/df-mc/dragonfly/server/performance"
 	"github.com/df-mc/dragonfly/server/world/chunk"
@@ -209,7 +210,7 @@ func (w *World) biome(pos cube.Pos) Biome {
 	id := int(w.chunk(chunkPosFromBlockPos(pos)).Biome(uint8(pos[0]), int16(pos[1]), uint8(pos[2])))
 	b, ok := BiomeByID(id)
 	if !ok {
-		w.conf.Log.Error("biome not found by ID", "ID", id)
+		w.conf.Log.Error(i18n.R("%df.world.biome.notfound", id), "ID", id)
 	}
 	return b
 }
@@ -452,7 +453,7 @@ func (w *World) liquid(pos cube.Pos) (Liquid, bool) {
 	id := c.Block(x, y, z, 0)
 	b, ok := w.conf.Blocks.BlockByRuntimeID(id)
 	if !ok {
-		w.conf.Log.Error("Liquid: no block with runtime ID", "ID", id)
+		w.conf.Log.Error(i18n.R("%df.world.liquid.no_block", id), "ID", id)
 		return nil, false
 	}
 	if liq, ok := b.(Liquid); ok {
@@ -462,7 +463,7 @@ func (w *World) liquid(pos cube.Pos) (Liquid, bool) {
 
 	b, ok = w.conf.Blocks.BlockByRuntimeID(id)
 	if !ok {
-		w.conf.Log.Error("Liquid: no block with runtime ID", "ID", id)
+		w.conf.Log.Error(i18n.R("%df.world.liquid.no_block", id), "ID", id)
 		return nil, false
 	}
 	liq, ok := b.(Liquid)
@@ -542,7 +543,7 @@ func (w *World) removeLiquidOnLayer(c *chunk.Chunk, x uint8, y int16, z, layer u
 
 	b, ok := w.conf.Blocks.BlockByRuntimeID(id)
 	if !ok {
-		w.conf.Log.Error("removeLiquidOnLayer: no block with runtime ID", "ID", id)
+		w.conf.Log.Error(i18n.R("%df.world.remove_liquid_on_layer.no_block", id), "ID", id)
 		return false, false
 	}
 	if _, ok := b.(Liquid); ok {
@@ -564,7 +565,7 @@ func (w *World) additionalLiquid(pos cube.Pos) (Liquid, bool) {
 
 	b, ok := w.conf.Blocks.BlockByRuntimeID(id)
 	if !ok {
-		w.conf.Log.Error("additionalLiquid: no block with runtime ID", "ID", id)
+		w.conf.Log.Error(i18n.R("%df.world.additional_liquid.no_block", id), "ID", id)
 		return nil, false
 	}
 	liq, ok := b.(Liquid)
@@ -1015,11 +1016,11 @@ func (w *World) save(f func(*Tx, ChunkPos, *Column)) ExecFunc {
 		if w.conf.ReadOnly {
 			return
 		}
-		w.conf.Log.Debug("Saving chunks in memory to disk...")
+		w.conf.Log.Debug(i18n.R("%df.world.save_chunks"))
 		for pos, c := range w.chunks {
 			f(tx, pos, c)
 		}
-		w.conf.Log.Debug("Updating level.dat values...")
+		w.conf.Log.Debug(i18n.R("%df.world.update_leveldat"))
 		w.conf.Provider.SaveSettings(w.set)
 	}
 }
@@ -1032,7 +1033,7 @@ func (w *World) saveChunk(_ *Tx, pos ChunkPos, c *Column) {
 
 		c.Compact()
 		if err := w.conf.Provider.StoreColumn(pos, w.conf.Dim, w.columnTo(c, pos)); err != nil {
-			w.conf.Log.Error("save chunk: "+err.Error(), "X", pos[0], "Z", pos[1])
+			w.conf.Log.Error(i18n.R("%df.world.chunk.save", err), "X", pos[0], "Z", pos[1])
 		}
 	}
 }
@@ -1081,9 +1082,9 @@ func (w *World) close() {
 	if w.set.ref.Add(-1); !w.advance {
 		return
 	}
-	w.conf.Log.Debug("Closing provider...")
+	w.conf.Log.Debug(i18n.R("%df.world.close_provider"))
 	if err := w.conf.Provider.Close(); err != nil {
-		w.conf.Log.Error("close world provider: " + err.Error())
+		w.conf.Log.Error(i18n.R("%df.world.close_world_provider", err))
 	}
 }
 
@@ -1181,7 +1182,7 @@ func (w *World) chunk(pos ChunkPos) *Column {
 	chunk.LightArea([]*chunk.Chunk{c.Chunk}, int(pos[0]), int(pos[1])).Fill()
 	done()
 	if err != nil {
-		w.conf.Log.Error("load chunk: "+err.Error(), "X", pos[0], "Z", pos[1])
+		w.conf.Log.Error(i18n.R("%df.world.chunk.load", err), "X", pos[0], "Z", pos[1])
 		return c
 	}
 	done = w.metrics.MeasureOperation("chunk_light_spread")
@@ -1343,12 +1344,12 @@ func (w *World) columnFrom(c *chunk.Column, _ ChunkPos) *Column {
 	for _, e := range c.Entities {
 		eid, ok := e.Data["identifier"].(string)
 		if !ok {
-			w.conf.Log.Error("read column: entity without identifier field", "ID", e.ID)
+			w.conf.Log.Error(i18n.R("%df.world.column.entity_no_id", e.ID), "ID", e.ID)
 			continue
 		}
 		t, ok := w.conf.Entities.Lookup(eid)
 		if !ok {
-			w.conf.Log.Error("read column: unknown entity type", "ID", e.ID, "type", eid)
+			w.conf.Log.Error(i18n.R("%df.world.column.unknown_entity", e.ID, eid), "ID", e.ID, "type", eid)
 			continue
 		}
 		col.Entities = append(col.Entities, entityFromData(t, e.ID, e.Data))
@@ -1357,12 +1358,12 @@ func (w *World) columnFrom(c *chunk.Column, _ ChunkPos) *Column {
 		rid := c.Chunk.Block(uint8(be.Pos[0]), int16(be.Pos[1]), uint8(be.Pos[2]), 0)
 		b, ok := w.conf.Blocks.BlockByRuntimeID(rid)
 		if !ok {
-			w.conf.Log.Error("read column: no block with runtime ID", "ID", rid)
+			w.conf.Log.Error(i18n.R("%df.world.column.no_block", rid), "ID", rid)
 			continue
 		}
 		nb, ok := b.(NBTer)
 		if !ok {
-			w.conf.Log.Error("read column: block with nbt does not implement NBTer", "block", fmt.Sprintf("%#v", b))
+			w.conf.Log.Error(i18n.R("%df.world.column.no_nbt", fmt.Sprintf("%#v", b)), "block", fmt.Sprintf("%#v", b))
 			continue
 		}
 		col.BlockEntities[be.Pos] = nb.DecodeNBT(be.Data).(Block)
