@@ -3,8 +3,9 @@ package cmd
 import (
 	"errors"
 	"fmt"
+
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/player/chat"
-	"golang.org/x/text/language"
 )
 
 // BroadcastScope, komut çıktısının yayınlanma kapsamını belirler.
@@ -77,6 +78,16 @@ func (o *Output) Printt(t chat.Translation, a ...any) {
 	o.messages = append(o.messages, t.F(a...))
 }
 
+// Printm, custom i18n key'i kaynağın locale'ine göre çözümler ve çıktıya ekler.
+func (o *Output) Printm(src any, key string, args ...any) {
+	o.messages = append(o.messages, stringer(i18n.M(src, key, args...)))
+}
+
+// Errorm, custom i18n key'ini hata olarak çıktıya ekler.
+func (o *Output) Errorm(src any, key string, args ...any) {
+	o.errors = append(o.errors, errors.New(i18n.M(src, key, args...)))
+}
+
 // Errors, komut çıktısına eklenen tüm hataları döndürür. Genellikle
 // sadece bir hata mesajı ayarlanır: Bir hata mesajından sonra,
 // bir komutun yürütülmesi tipik olarak sonlanır.
@@ -132,16 +143,14 @@ type stringer string
 
 func (s stringer) String() string { return string(s) }
 
-var MessageSyntax = chat.Translate(str("%commands.generic.syntax"), 3, `Syntax error: unexpected value: at "%v>>%v<<%v"`).Enc("<red>%v</red>")
-var MessageUsage = chat.Translate(str("%commands.generic.usage"), 1, `Usage: %v`).Enc("<red>%v</red>")
-var MessageUnknown = chat.Translate(str("%commands.generic.unknown"), 1, `Unknown command: "%v": Please check that the command exists and that you have permission to use it.`).Enc("<red>%v</red>")
-var MessageNoTargets = chat.Translate(str("%commands.generic.noTargetMatch"), 0, `No targets matched selector`).Enc("<red>%v</red>")
-var MessageNumberInvalid = chat.Translate(str("%commands.generic.num.invalid"), 1, `'%v' is not a valid number`).Enc("<red>> %v</red>")
-var MessageBooleanInvalid = chat.Translate(str("%commands.generic.boolean.invalid"), 1, `'%v' is not true or false`).Enc("<red>> %v</red>")
-var MessagePlayerNotFound = chat.Translate(str("%commands.generic.player.notFound"), 0, `That player cannot be found`).Enc("<red>> %v</red>")
-var MessageParameterInvalid = chat.Translate(str("%commands.generic.parameter.invalid"), 1, `'%v' is not a valid parameter`).Enc("<red>> %v</red>")
-
-type str string
-
-// Resolve returns the translation identifier as a string.
-func (s str) Resolve(language.Tag) string { return string(s) }
+// Genel komut mesajlari. Vanilla key'ler client tarafindan çevrilir.
+var (
+	MessageSyntax           = i18n.T("%commands.generic.syntax", 3)
+	MessageUsage            = i18n.T("%commands.generic.usage", 1)
+	MessageUnknown          = i18n.T("%commands.generic.unknown", 1)
+	MessageNoTargets        = i18n.T("%commands.generic.noTargetMatch", 0)
+	MessageNumberInvalid    = i18n.T("%commands.generic.num.invalid", 1)
+	MessageBooleanInvalid   = i18n.T("%commands.generic.boolean.invalid", 1)
+	MessagePlayerNotFound   = i18n.T("%commands.generic.player.notFound", 0)
+	MessageParameterInvalid = i18n.T("%commands.generic.parameter.invalid", 1)
+)

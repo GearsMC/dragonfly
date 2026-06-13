@@ -3,6 +3,7 @@ package cmd
 import (
 	"testing"
 
+	"github.com/df-mc/dragonfly/server/player/chat"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/go-gl/mathgl/mgl64"
 )
@@ -41,7 +42,7 @@ func (c treeQueryCommand) Run(_ Source, o *Output, _ *world.Tx) {
 }
 
 func TestCommandTreeFiltersNodePermissions(t *testing.T) {
-	command := NewWithTree("permission", "Permission test.", nil, NewCommandTree(
+	command := NewWithTree("permission", chat.Untranslated("Permission test."), nil, NewCommandTree(
 		Literal("set").WithPermissions("test.permission.set").Then(
 			Argument("name", "").Executes(treeSetCommand{}),
 		),
@@ -74,7 +75,7 @@ func TestCommandTreeFiltersNodePermissions(t *testing.T) {
 }
 
 func TestCommandTreeGeneratedFromRunnable(t *testing.T) {
-	command := New("example", "Example.", nil, structCommand{})
+	command := New("example", chat.Untranslated("Example."), nil, structCommand{})
 	source := &treeSource{permissions: map[string]bool{}}
 
 	params := command.Params(source)
@@ -95,7 +96,7 @@ func TestCommandTreeGeneratedFromRunnable(t *testing.T) {
 }
 
 func TestDispatchUsesLeafPermissions(t *testing.T) {
-	command := NewWithTree("treepermtest", "Permission dispatch test.", nil, NewCommandTree(
+	command := NewWithTree("treepermtest", chat.Untranslated("Permission dispatch test."), nil, NewCommandTree(
 		Literal("admin").WithPermissions("test.dispatch.admin").Executes(treeNoopCommand{}),
 	))
 	Register(command)
@@ -117,7 +118,7 @@ func TestDispatchUsesLeafPermissions(t *testing.T) {
 }
 
 func TestCommandTreeRootPermission(t *testing.T) {
-	command := NewWithTree("rootperm", "Root permission test.", nil, NewCommandTree(
+	command := NewWithTree("rootperm", chat.Untranslated("Root permission test."), nil, NewCommandTree(
 		Root().WithPermissions("test.root").Executes(treeNoopCommand{}),
 	))
 
@@ -134,7 +135,7 @@ func TestCommandTreeRootPermission(t *testing.T) {
 
 func TestCommandTreeContextRunnableParsesValues(t *testing.T) {
 	var captured any
-	command := NewWithTree("context", "Context command test.", nil, NewCommandTree(
+	command := NewWithTree("context", chat.Untranslated("Context command test."), nil, NewCommandTree(
 		Argument("name", "", ArgumentSuggestions("PlayerName", func(Source) []string {
 			return []string{"lexa5936"}
 		})).ExecutesFunc(func(ctx *Context) {
@@ -177,7 +178,7 @@ func TestListenRegistryChanges(t *testing.T) {
 	unregister := ListenRegistryChanges(func() {
 		called++
 	})
-	Register(NewWithTree("registrylistenertest", "Registry listener test.", nil, NewCommandTree(
+	Register(NewWithTree("registrylistenertest", chat.Untranslated("Registry listener test."), nil, NewCommandTree(
 		Root().Executes(treeNoopCommand{}),
 	)))
 	if called != 1 {
@@ -185,7 +186,7 @@ func TestListenRegistryChanges(t *testing.T) {
 	}
 
 	unregister()
-	Register(NewWithTree("registrylistenertesttwo", "Registry listener test two.", nil, NewCommandTree(
+	Register(NewWithTree("registrylistenertesttwo", chat.Untranslated("Registry listener test two."), nil, NewCommandTree(
 		Root().Executes(treeNoopCommand{}),
 	)))
 	if called != 1 {

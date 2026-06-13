@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"github.com/df-mc/dragonfly/server/cmd"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/world"
 )
@@ -22,19 +23,19 @@ func (x XPCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 		targets = []cmd.Target{t}
 	}
 	if len(targets) == 0 {
-		output.Error("Hedef oyuncu bulunamadı.")
+		output.Errort(cmd.MessageNoTargets)
 		return
 	}
 
 	players := resolvePlayers(targets)
 	if len(players) == 0 {
-		output.Error("Hedef oyuncu bulunamadı.")
+		output.Errorm(src, "%df.generic.target.notfound")
 		return
 	}
 
 	for _, p := range players {
 		p.AddExperience(int(x.Amount))
-		output.Printf("%s oyuncusuna %d deneyim verildi.", p.Name(), x.Amount)
+		output.Printm(src, "%df.cmd.xp.success", p.Name(), x.Amount)
 	}
 
 	output.SetBroadcastScope(cmd.BroadcastPermitted).
@@ -43,7 +44,7 @@ func (x XPCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 
 // init, xp komutunu kaydeder.
 func init() {
-	cmd.Register(cmd.NewWithTree("xp", "Oyuncuya deneyim verir.",
+	cmd.Register(cmd.NewWithTree("xp", i18n.D("%df.cmd.xp.description"),
 		[]string{"experience"},
 		cmd.NewCommandTree(
 			cmd.Argument("miktar", int32(0)).

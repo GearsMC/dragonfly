@@ -12,6 +12,7 @@ import (
 	"github.com/df-mc/dragonfly/server/block"
 	"github.com/df-mc/dragonfly/server/cmd"
 	"github.com/df-mc/dragonfly/server/entity"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/internal/packbuilder"
 	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/player"
@@ -25,6 +26,7 @@ import (
 	"github.com/sandertv/gophertunnel/minecraft"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 	"github.com/sandertv/gophertunnel/minecraft/resource"
+	"golang.org/x/text/language"
 )
 
 // Config contains options for starting a Minecraft server.
@@ -274,6 +276,16 @@ type UserConfig struct {
 		// on join. If they do not accept, they'll have to leave the server.
 		Required bool
 	}
+	// Localization, sunucu genelinde kullanilan varsayilan dil ve ek çeviri
+	// dosyalarinin yüklenmesi için ayarlari içerir.
+	Localization struct {
+		// Language, console gibi locale bilgisi olmayan kaynaklar için
+		// varsayilan dili belirtir. Örn: "tr", "en".
+		Language string
+		// Folder, ek TOML çeviri dosyalarinin yükleneceği klasördür.
+		// Bos bırakılırsa sadece gömülü çeviriler kullanilir.
+		Folder string
+	}
 }
 
 // Config converts a UserConfig to a Config, so that it may be used for creating
@@ -292,6 +304,14 @@ func (uc UserConfig) Config(log *slog.Logger) (Config, error) {
 	}
 	if !uc.Server.DisableJoinQuitMessages {
 		conf.JoinMessage, conf.QuitMessage = chat.MessageJoin, chat.MessageQuit
+	}
+	if uc.Localization.Language != "" {
+		if tag, err := language.Parse(uc.Localization.Language); err == nil {
+			i18n.SetDefault(tag)
+		}
+	}
+	if uc.Localization.Folder != "" {
+		_ = i18n.LoadFolder(uc.Localization.Folder)
 	}
 	if uc.World.SaveData {
 		conf.WorldProvider, err = mcdb.Config{Log: log}.Open(uc.World.Folder)
@@ -365,6 +385,7 @@ func DefaultConfig() UserConfig {
 	c.Resources.AutoBuildPack = true
 	c.Resources.Folder = "resources"
 	c.Resources.Required = false
+	c.Localization.Language = "tr"
 	return c
 }
 

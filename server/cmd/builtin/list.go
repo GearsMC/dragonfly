@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/df-mc/dragonfly/server/cmd"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/player"
 	"github.com/df-mc/dragonfly/server/world"
@@ -22,15 +23,15 @@ func (ListCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 		}
 	}
 	if len(names) == 0 {
-		output.Print("Sunucuda oyuncu yok.")
+		output.Printm(src, "%df.cmd.list.empty")
 		return
 	}
-	output.Printf("Çevrimiçi (%d): %s", len(names), strings.Join(names, ", "))
+	output.Printm(src, "%df.cmd.list.format", len(names), strings.Join(names, ", "))
 }
 
 // init, list komutunu kaydeder.
 func init() {
-	cmd.Register(cmd.NewWithTree("list", "Sunucudaki oyuncuları listeler.",
+	cmd.Register(cmd.NewWithTree("list", i18n.D("%df.cmd.list.description"),
 		[]string{"players", "online"},
 		cmd.NewCommandTree(cmd.Root().WithPermissions(permission.CommandList).Executes(&ListCommand{})),
 	))

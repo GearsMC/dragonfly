@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"github.com/df-mc/dragonfly/server/cmd"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/world"
 )
@@ -49,7 +50,7 @@ func (g GameModeCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 	// Hedefleri gerçek oyunculara çözümle
 	players := resolvePlayers(targets)
 	if len(players) == 0 {
-		output.Error("Hedef oyuncu bulunamadı.")
+		output.Errorm(src, "%df.generic.target.notfound")
 		return
 	}
 
@@ -60,9 +61,13 @@ func (g GameModeCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 
 	// Başarı çıktısı
 	if len(players) == 1 {
-		output.Printf("%s oyuncusunun oyun modu %s olarak değiştirildi.", players[0].Name(), mode)
+		if players[0] == src {
+			output.Printt(i18n.T("%commands.gamemode.success.self", 1), mode)
+		} else {
+			output.Printt(i18n.T("%commands.gamemode.success.other", 2), mode, players[0].Name())
+		}
 	} else {
-		output.Printf("%d oyuncunun oyun modu %s olarak değiştirildi.", len(players), mode)
+		output.Printm(src, "%df.cmd.gamemode.success.multi", len(players), mode)
 	}
 
 	// Çıktı kapsamını ayarla - sadece gamemode izni olanlar görsün
@@ -93,7 +98,7 @@ func init() {
 
 	cmd.Register(cmd.NewWithTree(
 		"gamemode",
-		"Oyuncu oyun modunu değiştirir.",
+		i18n.D("%df.cmd.gamemode.description"),
 		[]string{"gm"},
 		tree,
 	).WithPermissions(permission.CommandGameMode))

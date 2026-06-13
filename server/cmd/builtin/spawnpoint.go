@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"github.com/df-mc/dragonfly/server/cmd"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/go-gl/mathgl/mgl64"
@@ -23,23 +24,23 @@ func (s SpawnPointCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx)
 		targets = []cmd.Target{t}
 	}
 	if len(targets) == 0 {
-		output.Error("Hedef oyuncu bulunamadı.")
+		output.Errort(cmd.MessageNoTargets)
 		return
 	}
 
 	players := resolvePlayers(targets)
 	if len(players) == 0 {
-		output.Error("Hedef oyuncu bulunamadı.")
+		output.Errorm(src, "%df.generic.target.notfound")
 		return
 	}
 
 	for _, p := range players {
 		if pos, ok := s.Position.Load(); ok {
 			p.SetSpawnPosition(cubePosFromVec3(pos), tx.World())
-			output.Printf("%s oyuncusunun doğma noktası ayarlandı.", p.Name())
+			output.Printm(src, "%df.cmd.spawnpoint.success", p.Name())
 		} else {
 			p.SetSpawnPosition(cubePosFromVec3(p.Position()), tx.World())
-			output.Printf("%s oyuncusunun doğma noktası bulunduğu konuma ayarlandı.", p.Name())
+			output.Printm(src, "%df.cmd.spawnpoint.success.current", p.Name())
 		}
 	}
 
@@ -49,7 +50,7 @@ func (s SpawnPointCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx)
 
 // init, spawnpoint komutunu kaydeder.
 func init() {
-	cmd.Register(cmd.NewWithTree("spawnpoint", "Doğma noktasını ayarlar.",
+	cmd.Register(cmd.NewWithTree("spawnpoint", i18n.D("%df.cmd.spawnpoint.description"),
 		nil,
 		cmd.NewCommandTree(
 			cmd.Argument("oyuncu", []cmd.Target{}).Optional().

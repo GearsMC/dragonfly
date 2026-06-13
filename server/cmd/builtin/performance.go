@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/df-mc/dragonfly/server/cmd"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/performance"
 	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/world"
@@ -17,10 +18,10 @@ var registerPerformanceOnce sync.Once
 // RegisterPerformance registers built-in performance inspection commands.
 func RegisterPerformance() {
 	registerPerformanceOnce.Do(func() {
-		cmd.Register(cmd.NewWithTree("tps", "Bulunulan dunyanin TPS ve zamanlama olcumlerini gosterir.", nil, cmd.NewCommandTree(
+		cmd.Register(cmd.NewWithTree("tps", i18n.D("%df.cmd.tps.description"), nil, cmd.NewCommandTree(
 			cmd.Root().WithPermissions(permission.CommandTPS).Executes(tpsCommand{}),
 		)))
-		cmd.Register(cmd.NewWithTree("status", "Sunucu calisma durumu ve dunya performansini gosterir.", nil, cmd.NewCommandTree(
+		cmd.Register(cmd.NewWithTree("status", i18n.D("%df.cmd.status.description"), nil, cmd.NewCommandTree(
 			cmd.Root().WithPermissions(permission.CommandStatus).Executes(statusCommand{}),
 		)))
 	})
@@ -28,59 +29,59 @@ func RegisterPerformance() {
 
 type tpsCommand struct{}
 
-func (tpsCommand) Run(_ cmd.Source, o *cmd.Output, tx *world.Tx) {
+func (tpsCommand) Run(src cmd.Source, o *cmd.Output, tx *world.Tx) {
 	snapshot := tx.World().Metrics().Snapshot()
 
-	printColour(o, "<gold><b>=== Dunya Performansi ===</b></gold>")
-	printColour(o, "<grey>Dunya:</grey> <aqua>%s</aqua> <dark-grey>(%s)</dark-grey>", snapshot.Name, snapshot.Dimension)
-	printColour(o, "<grey>TPS:</grey> %s <dark-grey>|</dark-grey> <grey>Tick ortalama:</grey> %s <dark-grey>|</dark-grey> <grey>En yuksek:</grey> %s",
+	o.Printm(src, "%df.performance.title")
+	o.Printm(src, "%df.performance.world", snapshot.Name, snapshot.Dimension)
+	o.Printm(src, "%df.performance.tps",
 		healthTPS(snapshot.TPS),
 		healthDuration(snapshot.Tick.Average),
 		healthDuration(snapshot.Tick.Maximum),
 	)
-	printColour(o, "<grey>Islem kuyrugu:</grey> %s <dark-grey>|</dark-grey> <grey>Bekleme ortalama:</grey> %s <dark-grey>|</dark-grey> <grey>En yuksek:</grey> %s",
-		healthQueue(snapshot.Queue.Current, snapshot.Queue.Peak),
+	o.Printm(src, "%df.performance.queue",
+		healthQueue(src, snapshot.Queue.Current, snapshot.Queue.Peak),
 		healthDuration(snapshot.Transactions.Wait.Average),
 		healthDuration(snapshot.Transactions.Wait.Maximum),
 	)
-	printColour(o, "<grey>Transaction suresi:</grey> %s <dark-grey>|</dark-grey> <grey>En yuksek:</grey> %s",
+	o.Printm(src, "%df.performance.tx",
 		healthDuration(snapshot.Transactions.Execution.Average),
 		healthDuration(snapshot.Transactions.Execution.Maximum),
 	)
 
-	printOperationSummaries(o, snapshot.Operations)
+	printOperationSummaries(src, o, snapshot.Operations)
 }
 
 type statusCommand struct{}
 
-func (statusCommand) Run(_ cmd.Source, o *cmd.Output, _ *world.Tx) {
+func (statusCommand) Run(src cmd.Source, o *cmd.Output, _ *world.Tx) {
 	runtime := performance.Runtime()
 	snapshots := performance.WorldSnapshots()
 
-	printColour(o, "<gold><b>=== Sunucu Durumu ===</b></gold>")
-	printColour(o, "<grey>Bellek:</grey> <aqua>%s</aqua> <dark-grey>|</dark-grey> <grey>Heap:</grey> <aqua>%s</aqua> <dark-grey>|</dark-grey> <grey>Nesne:</grey> <aqua>%d</aqua>",
+	o.Printm(src, "%df.status.title")
+	o.Printm(src, "%df.status.memory",
 		formatBytes(runtime.HeapAlloc), formatBytes(runtime.HeapInUse), runtime.HeapObjects,
 	)
-	printColour(o, "<grey>Gorev:</grey> <aqua>%d</aqua> <dark-grey>|</dark-grey> <grey>GC:</grey> <aqua>%d</aqua> <dark-grey>|</dark-grey> <grey>Son GC duraklamasi:</grey> %s",
+	o.Printm(src, "%df.status.gc",
 		runtime.Goroutines, runtime.GCCycles, healthDuration(time.Duration(runtime.LastGCPause)),
 	)
-	printColour(o, "<grey>Dunyalar:</grey> <aqua>%d</aqua>", runtime.Worlds)
+	o.Printm(src, "%df.status.worlds", runtime.Worlds)
 
 	for _, snapshot := range snapshots {
-		printColour(o, "<yellow>%s</yellow> <dark-grey>(%s)</dark-grey> <dark-grey>-</dark-grey> TPS %s <dark-grey>|</dark-grey> Tick %s <dark-grey>|</dark-grey> Kuyruk %s",
+		o.Printm(src, "%df.status.world.entry",
 			snapshot.Name,
 			snapshot.Dimension,
 			healthTPS(snapshot.TPS),
 			healthDuration(snapshot.Tick.Average),
-			healthQueue(snapshot.Queue.Current, snapshot.Queue.Peak),
+			healthQueue(src, snapshot.Queue.Current, snapshot.Queue.Peak),
 		)
-		printColour(o, "  <dark-grey>Chunk:</dark-grey> <aqua>%d</aqua> <dark-grey>| Varlik:</dark-grey> <aqua>%d</aqua> <dark-grey>| Oyuncu:</dark-grey> <aqua>%d</aqua>",
+		o.Printm(src, "%df.status.world.state",
 			snapshot.State.Chunks, snapshot.State.Entities, snapshot.State.Viewers,
 		)
 	}
 }
 
-func printOperationSummaries(o *cmd.Output, operations map[string]performance.DurationSummary) {
+func printOperationSummaries(src cmd.Source, o *cmd.Output, operations map[string]performance.DurationSummary) {
 	printedHeader := false
 	for _, operation := range operationLabels {
 		summary, ok := operations[operation.name]
@@ -88,11 +89,11 @@ func printOperationSummaries(o *cmd.Output, operations map[string]performance.Du
 			continue
 		}
 		if !printedHeader {
-			printColour(o, "<gold><b>Olculen agir islemler</b></gold> <dark-grey>(ortalama / en yuksek)</dark-grey>")
+			o.Printm(src, "%df.performance.operations")
 			printedHeader = true
 		}
-		printColour(o, "<grey>%s:</grey> %s <dark-grey>/</dark-grey> %s <dark-grey>(%d olcum)</dark-grey>",
-			operation.label,
+		o.Printm(src, "%df.performance.operation",
+			i18n.M(src, operation.labelKey),
 			healthDuration(summary.Average),
 			healthDuration(summary.Maximum),
 			summary.Samples,
@@ -101,20 +102,16 @@ func printOperationSummaries(o *cmd.Output, operations map[string]performance.Du
 }
 
 var operationLabels = []struct {
-	name  string
-	label string
+	name     string
+	labelKey string
 }{
-	{name: "chunk_load", label: "Chunk diskten yukleme"},
-	{name: "chunk_generate", label: "Chunk uretme"},
-	{name: "chunk_light_fill", label: "Ilk isiklandirma"},
-	{name: "chunk_light_spread", label: "Isik yayilimi"},
-	{name: "chunk_encode", label: "Chunk ag kodlama"},
-	{name: "subchunk_encode", label: "Subchunk ag kodlama"},
-	{name: "chunk_save", label: "Chunk kaydetme"},
-}
-
-func printColour(o *cmd.Output, format string, a ...any) {
-	o.Print(text.Colourf(format, a...))
+	{name: "chunk_load", labelKey: "%df.performance.op.chunk_load"},
+	{name: "chunk_generate", labelKey: "%df.performance.op.chunk_generate"},
+	{name: "chunk_light_fill", labelKey: "%df.performance.op.chunk_light_fill"},
+	{name: "chunk_light_spread", labelKey: "%df.performance.op.chunk_light_spread"},
+	{name: "chunk_encode", labelKey: "%df.performance.op.chunk_encode"},
+	{name: "subchunk_encode", labelKey: "%df.performance.op.subchunk_encode"},
+	{name: "chunk_save", labelKey: "%df.performance.op.chunk_save"},
 }
 
 func healthTPS(tps float64) string {
@@ -138,14 +135,14 @@ func healthDuration(d time.Duration) string {
 	return colour + formatDuration(d) + text.Reset
 }
 
-func healthQueue(current, peak int64) string {
+func healthQueue(src cmd.Source, current, peak int64) string {
 	colour := text.Green
 	if current >= 10 {
 		colour = text.Red
 	} else if current > 0 {
 		colour = text.Yellow
 	}
-	return colour + fmt.Sprintf("simdi %d, en yuksek %d", current, peak) + text.Reset
+	return colour + i18n.M(src, "%df.performance.queue.status", current, peak) + text.Reset
 }
 
 func formatDuration(d time.Duration) string {

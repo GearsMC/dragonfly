@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"github.com/df-mc/dragonfly/server/cmd"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/world"
 )
@@ -35,12 +36,12 @@ func (d DifficultyCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx)
 	if tx != nil {
 		tx.World().SetDifficulty(worldDiff)
 	} else {
-		output.Error("Dünya işlemi kullanılamıyor.")
+		output.Errorm(src, "%df.cmd.difficulty.error.tx")
 		return
 	}
 
 	// Başarı çıktısı
-	output.Printf("Zorluk seviyesi %s olarak ayarlandı.", diff)
+	output.Printt(i18n.T("%commands.difficulty.success", 1), diff)
 
 	// Çıktı kapsamını ayarla - sadece admin izni olanlar görsün
 	output.SetBroadcastScope(cmd.BroadcastPermitted).
@@ -67,7 +68,7 @@ func init() {
 
 	cmd.Register(cmd.NewWithTree(
 		"difficulty",
-		"Sunucu zorluk seviyesini değiştirir.",
+		i18n.D("%df.cmd.difficulty.description"),
 		[]string{"diff"},
 		tree,
 	).WithPermissions(permission.CommandDifficulty))

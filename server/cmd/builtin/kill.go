@@ -5,6 +5,7 @@ import (
 
 	"github.com/df-mc/dragonfly/server/cmd"
 	"github.com/df-mc/dragonfly/server/entity"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 )
 
@@ -23,25 +24,25 @@ func (k KillCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 		targets = []cmd.Target{t}
 	}
 	if len(targets) == 0 {
-		output.Error("Hedef bulunamadı.")
+		output.Errort(cmd.MessageNoTargets)
 		return
 	}
 
 	players := resolvePlayers(targets)
 	if len(players) == 0 {
-		output.Error("Hedef oyuncu bulunamadı.")
+		output.Errorm(src, "%df.generic.target.notfound")
 		return
 	}
 
 	for _, p := range players {
 		p.Hurt(math.MaxFloat64, entity.VoidDamageSource{})
-		output.Printf("%s öldürüldü.", p.Name())
+		output.Printt(i18n.T("%commands.kill.successful", 1), p.Name())
 	}
 }
 
 // init, kill komutunu kaydeder.
 func init() {
-	cmd.Register(cmd.NewWithTree("kill", "Oyuncuyu öldürür.",
+	cmd.Register(cmd.NewWithTree("kill", i18n.D("%df.cmd.kill.description"),
 		[]string{"suicide"},
 		cmd.NewCommandTree(
 			cmd.Argument("hedef", []cmd.Target{}).Optional().

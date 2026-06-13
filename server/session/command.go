@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/df-mc/dragonfly/server/cmd"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/go-gl/mathgl/mgl64"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
@@ -43,6 +44,15 @@ func (s *Session) SendCommandOutput(output *cmd.Output, l language.Tag) {
 type translation interface {
 	Resolve(l language.Tag) string
 	Params(l language.Tag) []string
+}
+
+// sourceLocale, kaynağin locale bilgisini döndürür. Kaynak locale sağlamiyorsa
+// sunucu varsayilan dilini döndürür.
+func sourceLocale(src cmd.Source) language.Tag {
+	if ls, ok := src.(interface{ Locale() language.Tag }); ok {
+		return ls.Locale()
+	}
+	return i18n.Default()
 }
 
 // BuildAvailableCommands builds an AvailableCommands packet and the runnable command map for the Source
@@ -134,7 +144,7 @@ func BuildAvailableCommands(
 		}
 		pk.Commands = append(pk.Commands, protocol.Command{
 			Name:            c.Name(),
-			Description:     c.Description(),
+			Description:     c.Description().Resolve(sourceLocale(src)),
 			AliasesOffset:   aliasesIndex,
 			PermissionLevel: protocol.CommandPermissionLevelAny,
 			Overloads:       overloads,

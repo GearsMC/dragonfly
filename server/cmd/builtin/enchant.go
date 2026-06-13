@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"github.com/df-mc/dragonfly/server/cmd"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/item/enchantment"
 	"github.com/df-mc/dragonfly/server/permission"
@@ -21,13 +22,13 @@ type EnchantCommand struct {
 func (e EnchantCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 	players := resolvePlayers(e.Player)
 	if len(players) == 0 {
-		output.Error("Hedef oyuncu bulunamadı.")
+		output.Errorm(src, "%df.generic.target.notfound")
 		return
 	}
 
 	enchType := enchantTypeByName(e.Ench)
 	if enchType == nil {
-		output.Errorf("Bilinmeyen büyü: %s", e.Ench)
+		output.Errort(i18n.T("%commands.enchant.notFound", 1), e.Ench)
 		return
 	}
 
@@ -39,12 +40,12 @@ func (e EnchantCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 	for _, p := range players {
 		mainHand, _ := p.HeldItems()
 		if mainHand.Empty() {
-			output.Errorf("%s oyuncusunun elinde eşya yok.", p.Name())
+			output.Errort(i18n.S("%commands.enchant.noItem"))
 			continue
 		}
 		enchanted := mainHand.WithEnchantments(item.NewEnchantment(enchType, level))
 		p.SetHeldItems(enchanted, enchanted)
-		output.Printf("%s oyuncusunun eşyasına %s %d eklendi.", p.Name(), e.Ench, level)
+		output.Printm(src, "%df.cmd.enchant.success", p.Name(), e.Ench, level)
 	}
 
 	output.SetBroadcastScope(cmd.BroadcastPermitted).
@@ -114,7 +115,7 @@ func enchantTypeByName(name string) item.EnchantmentType {
 
 // init, enchant komutunu kaydeder.
 func init() {
-	cmd.Register(cmd.NewWithTree("enchant", "Eşyaya büyü ekler.",
+	cmd.Register(cmd.NewWithTree("enchant", i18n.D("%df.cmd.enchant.description"),
 		nil,
 		cmd.NewCommandTree(
 			cmd.Argument("oyuncu", []cmd.Target{}).

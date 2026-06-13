@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"github.com/df-mc/dragonfly/server/cmd"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/world"
 )
@@ -23,19 +24,19 @@ func (c ClearCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 		targets = []cmd.Target{t}
 	}
 	if len(targets) == 0 {
-		output.Error("Hedef oyuncu bulunamadı.")
+		output.Errort(cmd.MessageNoTargets)
 		return
 	}
 
 	players := resolvePlayers(targets)
 	if len(players) == 0 {
-		output.Error("Hedef oyuncu bulunamadı.")
+		output.Errorm(src, "%df.generic.target.notfound")
 		return
 	}
 
 	for _, p := range players {
 		p.Inventory().Clear()
-		output.Printf("%s oyuncusunun envanteri temizlendi.", p.Name())
+		output.Printm(src, "%df.cmd.clear.success", p.Name())
 	}
 
 	output.SetBroadcastScope(cmd.BroadcastPermitted).
@@ -44,7 +45,7 @@ func (c ClearCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 
 // init, clear komutunu kaydeder.
 func init() {
-	cmd.Register(cmd.NewWithTree("clear", "Oyuncu envanterini temizler.",
+	cmd.Register(cmd.NewWithTree("clear", i18n.D("%df.cmd.clear.description"),
 		nil,
 		cmd.NewCommandTree(
 			cmd.Argument("oyuncu", []cmd.Target{}).Optional().

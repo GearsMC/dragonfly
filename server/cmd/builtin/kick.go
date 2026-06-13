@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"github.com/df-mc/dragonfly/server/cmd"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/world"
 )
@@ -17,18 +18,18 @@ type KickCommand struct {
 func (k KickCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 	players := resolvePlayers(k.Player)
 	if len(players) == 0 {
-		output.Error("Hedef oyuncu bulunamadı.")
+		output.Errorm(src, "%df.generic.target.notfound")
 		return
 	}
 
-	reason := "Sunucudan atıldı."
+	reason := i18n.M(src, "%df.cmd.kick.reason.default")
 	if r, ok := k.Reason.Load(); ok {
 		reason = string(r)
 	}
 
 	for _, p := range players {
 		p.Disconnect(reason)
-		output.Printf("%s sunucudan atıldı: %s", p.Name(), reason)
+		output.Printm(src, "%df.cmd.kick.success", p.Name(), reason)
 	}
 
 	output.SetBroadcastScope(cmd.BroadcastPermitted).
@@ -37,7 +38,7 @@ func (k KickCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 
 // init, kick komutunu kaydeder.
 func init() {
-	cmd.Register(cmd.NewWithTree("kick", "Oyuncuyu sunucudan atar.",
+	cmd.Register(cmd.NewWithTree("kick", i18n.D("%df.cmd.kick.description"),
 		nil,
 		cmd.NewCommandTree(
 			cmd.Argument("oyuncu", []cmd.Target{}).

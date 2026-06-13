@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+
+	"github.com/df-mc/dragonfly/server/player/chat"
 )
 
 type nodeKind uint8
@@ -24,7 +26,7 @@ type Tree struct {
 type Node struct {
 	kind        nodeKind
 	name        string
-	description string
+	description chat.Translation
 	value       any
 	optional    bool
 	suffix      string
@@ -141,7 +143,7 @@ func (n *Node) WithPermissions(permissions ...string) *Node {
 }
 
 // WithDescription, node için okunabilir açıklama metadata'sı ayarlar.
-func (n *Node) WithDescription(description string) *Node {
+func (n *Node) WithDescription(description chat.Translation) *Node {
 	n.description = description
 	return n
 }

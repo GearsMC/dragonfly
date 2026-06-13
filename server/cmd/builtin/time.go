@@ -1,72 +1,117 @@
 package builtin
 
 import (
+	"strconv"
+
 	"github.com/df-mc/dragonfly/server/cmd"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/world"
 )
 
-// TimeCommand, /time komutu.
-// Dünya zamanını ayarlar veya sorgular.
-type TimeCommand struct {
-	Action cmd.Varargs
+// TimeSetCommand, /time set <değer> komutu.
+type TimeSetCommand struct {
+	Value int32
 }
 
-// Run, /time komutunu çalıştırır.
-func (t TimeCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
-	action := string(t.Action)
+func (c TimeSetCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
+	tx.World().SetTime(int(c.Value))
+	output.Printt(i18n.T("%commands.time.set", 1), c.Value)
+	output.SetBroadcastScope(cmd.BroadcastPermitted).
+		SetRequiredPermissions(permission.CommandTime)
+}
 
-	// /time query → zamanı göster
-	if action == "query" || action == "" {
-		output.Printf("Sunucu zamanı: %d (gün: %d)", tx.World().Time(), tx.World().Time()%24000)
-		return
-	}
+// TimeAddCommand, /time add <değer> komutu.
+type TimeAddCommand struct {
+	Value int32
+}
 
-	// /time set <değer> → zamanı ayarla
-	if action == "set" {
-		output.Error("Kullanım: /time set <değer>")
-		return
-	}
-	if action == "add" {
-		output.Error("Kullanım: /time add <değer>")
-		return
-	}
+func (c TimeAddCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
+	current := tx.World().Time()
+	tx.World().SetTime(current + int(c.Value))
+	output.Printt(i18n.T("%commands.time.added", 1), c.Value)
+	output.SetBroadcastScope(cmd.BroadcastPermitted).
+		SetRequiredPermissions(permission.CommandTime)
+}
 
-	// /time <değer> → doğrudan ayarla
-	// Gündüz/değer kontrolleri
-	switch action {
-	case "day", "1000":
-		tx.World().SetTime(1000)
-		output.Print("Zaman gündüz olarak ayarlandı.")
-	case "night", "13000":
-		tx.World().SetTime(13000)
-		output.Print("Zaman gece olarak ayarlandı.")
-	case "midnight", "18000":
-		tx.World().SetTime(18000)
-		output.Print("Zaman gece yarısı olarak ayarlandı.")
-	case "noon", "6000":
-		tx.World().SetTime(6000)
-		output.Print("Zaman öğlen olarak ayarlandı.")
-	case "sunrise", "23000":
-		tx.World().SetTime(23000)
-		output.Print("Zaman gün doğumu olarak ayarlandı.")
-	case "sunset", "12000":
-		tx.World().SetTime(12000)
-		output.Print("Zaman gün batımı olarak ayarlandı.")
+// TimeQueryCommand, /time query komutu.
+type TimeQueryCommand struct{}
+
+func (TimeQueryCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
+	t := tx.World().Time()
+	day := t / 24000
+	output.Printm(src, "%df.cmd.time.query", t, day, t%24000)
+}
+
+// TimeStartCommand, /time start komutu — zaman döngüsünü başlatır.
+type TimeStartCommand struct{}
+
+func (TimeStartCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
+	tx.World().StartTime()
+	output.Printm(src, "%df.cmd.time.started")
+	output.SetBroadcastScope(cmd.BroadcastPermitted).
+		SetRequiredPermissions(permission.CommandTime)
+}
+
+// TimeStopCommand, /time stop komutu — zaman döngüsünü durdurur.
+type TimeStopCommand struct{}
+
+func (TimeStopCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
+	tx.World().StopTime()
+	output.Printm(src, "%df.cmd.time.stopped")
+	output.SetBroadcastScope(cmd.BroadcastPermitted).
+		SetRequiredPermissions(permission.CommandTime)
+}
+
+// TimeDirectCommand, /time <değer> komutu — doğrudan preset veya sayı.
+type TimeDirectCommand struct {
+	Value string
+}
+
+func (c TimeDirectCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
+	var t int
+	switch c.Value {
+	case "day":
+		t = 1000
+	case "night":
+		t = 13000
+	case "midnight":
+		t = 18000
+	case "noon":
+		t = 6000
+	case "sunrise":
+		t = 23000
+	case "sunset":
+		t = 12000
 	default:
-		output.Error("Geçersiz zaman değeri: day, night, noon, midnight, sunrise, sunset")
+		n, err := strconv.Atoi(c.Value)
+		if err != nil {
+			output.Errorm(src, "%df.cmd.time.error.value", c.Value)
+			return
+		}
+		t = n
 	}
-
+	tx.World().SetTime(t)
+	output.Printt(i18n.T("%commands.time.set", 1), t)
 	output.SetBroadcastScope(cmd.BroadcastPermitted).
 		SetRequiredPermissions(permission.CommandTime)
 }
 
 // init, time komutunu kaydeder.
 func init() {
-	cmd.Register(cmd.NewWithTree("time", "Dünya zamanını değiştirir.",
+	cmd.Register(cmd.NewWithTree("time", i18n.D("%df.cmd.time.description"),
 		nil,
 		cmd.NewCommandTree(
-			cmd.GreedyText("eylem").Executes(&TimeCommand{}),
+			cmd.Literal("set").Then(
+				cmd.Argument("değer", int32(0)).Executes(&TimeSetCommand{}),
+			),
+			cmd.Literal("add").Then(
+				cmd.Argument("değer", int32(0)).Executes(&TimeAddCommand{}),
+			),
+			cmd.Literal("query").Executes(&TimeQueryCommand{}),
+			cmd.Literal("start").Executes(&TimeStartCommand{}),
+			cmd.Literal("stop").Executes(&TimeStopCommand{}),
+			cmd.Argument("değer", "").Executes(&TimeDirectCommand{}),
 		),
 	).WithPermissions(permission.CommandTime))
 }

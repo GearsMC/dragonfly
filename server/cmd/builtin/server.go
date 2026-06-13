@@ -5,22 +5,22 @@ import (
 
 	"github.com/df-mc/dragonfly/server"
 	"github.com/df-mc/dragonfly/server/cmd"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/world"
-	"github.com/sandertv/gophertunnel/minecraft/text"
 )
 
 // RegisterServer registers built-in server control commands.
 func RegisterServer(srv *server.Server) {
-	cmd.Register(cmd.NewWithTree("stop", "Sunucuyu durdurur.", nil, cmd.NewCommandTree(
+	cmd.Register(cmd.NewWithTree("stop", i18n.D("%df.cmd.stop.description"), nil, cmd.NewCommandTree(
 		cmd.Root().WithPermissions(permission.CommandStop).Executes(stopCommand{srv: srv}),
 	)))
-	cmd.Register(cmd.NewWithTree("op", "Oyuncuya operator yetkisi verir.", nil, cmd.NewCommandTree(
+	cmd.Register(cmd.NewWithTree("op", i18n.D("%df.cmd.op.description"), nil, cmd.NewCommandTree(
 		cmd.Root().WithPermissions(permission.CommandOP).Then(
 			cmd.Argument("player", "").Executes(opCommand{srv: srv}),
 		),
 	)))
-	cmd.Register(cmd.NewWithTree("deop", "Oyuncudan operator yetkisini alir.", nil, cmd.NewCommandTree(
+	cmd.Register(cmd.NewWithTree("deop", i18n.D("%df.cmd.deop.description"), nil, cmd.NewCommandTree(
 		cmd.Root().WithPermissions(permission.CommandDeOP).Then(
 			cmd.Argument("player", "").Executes(deopCommand{srv: srv}),
 		),
@@ -31,8 +31,8 @@ type stopCommand struct {
 	srv *server.Server `cmd:"-"`
 }
 
-func (c stopCommand) Run(_ cmd.Source, o *cmd.Output, _ *world.Tx) {
-	o.Print(text.Yellow + "Sunucu durduruluyor..." + text.Reset)
+func (c stopCommand) Run(src cmd.Source, o *cmd.Output, _ *world.Tx) {
+	o.Printm(src, "%df.server.stop")
 	go func() {
 		_ = c.srv.Close()
 	}()
@@ -43,25 +43,25 @@ type opCommand struct {
 	Player string
 }
 
-func (c opCommand) Run(_ cmd.Source, o *cmd.Output, _ *world.Tx) {
+func (c opCommand) Run(src cmd.Source, o *cmd.Output, _ *world.Tx) {
 	identity, ok, err := resolveOperatorTarget(c.srv, c.Player)
 	if err != nil {
-		o.Errorf("Oyuncu kimligi cozulurken hata olustu: %v", err)
+		o.Errorm(src, "%df.server.op.error.identity", err)
 		return
 	}
 	if !ok {
-		o.Printf("Oyuncu bulunamadi: %s", c.Player)
+		o.Printm(src, "%df.server.op.notfound", c.Player)
 		return
 	}
 	if c.srv.IsOperatorXUID(identity.xuid) {
-		o.Print(text.Yellow + "Oyuncu zaten operator: " + identity.display() + text.Reset)
+		o.Printm(src, "%df.server.op.already", identity.display())
 		return
 	}
 	if err := c.srv.SetOperatorXUID(identity.xuid, identity.name, true); err != nil {
-		o.Errorf("Operator yetkisi verilemedi: %v", err)
+		o.Errorm(src, "%df.server.op.error.identity", err)
 		return
 	}
-	o.Print(text.Green + "Operator yetkisi verildi: " + identity.display() + text.Reset)
+	o.Printm(src, "%df.server.op.success", identity.display())
 }
 
 type deopCommand struct {
@@ -69,25 +69,25 @@ type deopCommand struct {
 	Player string
 }
 
-func (c deopCommand) Run(_ cmd.Source, o *cmd.Output, _ *world.Tx) {
+func (c deopCommand) Run(src cmd.Source, o *cmd.Output, _ *world.Tx) {
 	identity, ok, err := resolveOperatorTarget(c.srv, c.Player)
 	if err != nil {
-		o.Errorf("Oyuncu kimligi cozulurken hata olustu: %v", err)
+		o.Errorm(src, "%df.server.op.error.identity", err)
 		return
 	}
 	if !ok {
-		o.Printf("Oyuncu bulunamadi: %s", c.Player)
+		o.Printm(src, "%df.server.op.notfound", c.Player)
 		return
 	}
 	if !c.srv.IsOperatorXUID(identity.xuid) {
-		o.Print(text.Yellow + "Oyuncu operator degil: " + identity.display() + text.Reset)
+		o.Printm(src, "%df.server.deop.not", identity.display())
 		return
 	}
 	if err := c.srv.SetOperatorXUID(identity.xuid, identity.name, false); err != nil {
-		o.Errorf("Operator yetkisi alinamadi: %v", err)
+		o.Errorm(src, "%df.server.op.error.identity", err)
 		return
 	}
-	o.Print(text.Green + "Operator yetkisi alindi: " + identity.display() + text.Reset)
+	o.Printm(src, "%df.server.deop.success", identity.display())
 }
 
 type operatorTarget struct {

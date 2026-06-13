@@ -6,6 +6,7 @@ import (
 
 	"github.com/df-mc/dragonfly/server/cmd"
 	"github.com/df-mc/dragonfly/server/entity/effect"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/world"
 )
@@ -25,7 +26,7 @@ type EffectCommand struct {
 func (e EffectCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 	players := resolvePlayers(e.Player)
 	if len(players) == 0 {
-		output.Error("Hedef oyuncu bulunamadı.")
+		output.Errorm(src, "%df.generic.target.notfound")
 		return
 	}
 
@@ -35,7 +36,7 @@ func (e EffectCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 				p.RemoveEffect(ef.Type())
 			}
 		}
-		output.Printf("%d oyuncunun efektleri temizlendi.", len(players))
+		output.Printm(src, "%df.cmd.effect.clear", len(players))
 		output.SetBroadcastScope(cmd.BroadcastPermitted).
 			SetRequiredPermissions(permission.CommandEffect)
 		return
@@ -43,7 +44,7 @@ func (e EffectCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 
 	effType := effectTypeByName(e.Effect)
 	if effType == nil {
-		output.Errorf("Bilinmeyen efekt: %s", e.Effect)
+		output.Errort(i18n.T("%commands.effect.notFound", 1), e.Effect)
 		return
 	}
 
@@ -65,9 +66,9 @@ func (e EffectCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 	}
 
 	if len(players) == 1 {
-		output.Printf("%s oyuncusuna %s efekti verildi (seviye %d, %ds).", players[0].Name(), e.Effect, level, seconds)
+		output.Printm(src, "%df.cmd.effect.success", players[0].Name(), e.Effect, level, seconds)
 	} else {
-		output.Printf("%d oyuncuya %s efekti verildi (seviye %d, %ds).", len(players), e.Effect, level, seconds)
+		output.Printm(src, "%df.cmd.effect.success.multi", len(players), e.Effect, level, seconds)
 	}
 
 	output.SetBroadcastScope(cmd.BroadcastPermitted).
@@ -145,7 +146,7 @@ func effectTypeByName(name string) effect.Type {
 
 // init, effect komutunu kaydeder.
 func init() {
-	cmd.Register(cmd.NewWithTree("effect", "Oyuncuya durum efekti verir.",
+	cmd.Register(cmd.NewWithTree("effect", i18n.D("%df.cmd.effect.description"),
 		nil,
 		cmd.NewCommandTree(
 			cmd.Argument("oyuncu", []cmd.Target{}).

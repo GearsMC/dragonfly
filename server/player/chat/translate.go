@@ -44,6 +44,11 @@ func Translate(str TranslationString, params int, fallback string) Translation {
 	return Translation{str: str, params: params, fallback: fallback, format: "%v"}
 }
 
+// Untranslated returns a Translation for a plain, untranslated string.
+func Untranslated(s string) Translation {
+	return Translate(str(s), 0, s)
+}
+
 // Translation represents a TranslationString with additional formatting, that
 // may be filled out by calling F on it with a list of arguments for the
 // translation.
@@ -52,6 +57,7 @@ type Translation struct {
 	format   string
 	params   int
 	fallback string
+	raw      bool
 }
 
 // Zero returns false if a Translation was not created using Translate or
@@ -66,6 +72,15 @@ func (t Translation) Zero() bool {
 // Enc accepts colouring formats parsed by text.Colourf.
 func (t Translation) Enc(format string) Translation {
 	t.format = format
+	t.raw = false
+	return t
+}
+
+// Raw returns a Translation that is sent to the client as-is, without
+// text.Colourf processing. This is useful for vanilla translation keys that
+// the client translates itself.
+func (t Translation) Raw() Translation {
+	t.raw = true
 	return t
 }
 
@@ -102,6 +117,9 @@ type translation struct {
 // Resolve translates the TranslationString of the translation to the language
 // passed and returns it.
 func (t translation) Resolve(l language.Tag) string {
+	if t.t.raw {
+		return t.t.str.Resolve(l)
+	}
 	return text.Colourf(t.t.format, t.t.str.Resolve(l))
 }
 
@@ -121,6 +139,12 @@ func (t translation) Params(l language.Tag) []string {
 
 // String formats and returns the fallback value of the translation.
 func (t translation) String() string {
+	if t.t.raw {
+		// Raw translation'lar client tarafindan çevrilen key'lerdir.
+		// Fallback'deki % karakterlerinin fmt.Sprintf tarafindan yanlis yorumlanmaması
+		// için parametrelendirme yapilmaz.
+		return t.t.fallback
+	}
 	return fmt.Sprintf(text.Colourf(t.t.format, t.t.fallback), t.params...)
 }
 

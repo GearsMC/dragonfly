@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/df-mc/dragonfly/server/player/chat"
 	"github.com/df-mc/dragonfly/server/world"
 )
 
@@ -56,7 +57,7 @@ type SenderTypeAllower interface {
 type Command struct {
 	v           []reflect.Value
 	name        string
-	description string
+	description chat.Translation
 	usage       string
 	aliases     []string
 	permissions []string
@@ -70,7 +71,7 @@ type Command struct {
 // the command. When the command is run, the Run method of the Runnable will be
 // called after all fields have their values from the parsed command set. If r
 // is not a struct or a pointer to a struct, New panics.
-func New(name, description string, aliases []string, r ...Runnable) Command {
+func New(name string, description chat.Translation, aliases []string, r ...Runnable) Command {
 	runnableValues := make([]reflect.Value, len(r))
 	for i, runnable := range r {
 		runnableValues[i] = normaliseRunnable(runnable)
@@ -79,11 +80,11 @@ func New(name, description string, aliases []string, r ...Runnable) Command {
 }
 
 // NewWithTree, açık command tree tanımıyla yeni bir Command oluşturur.
-func NewWithTree(name, description string, aliases []string, tree *Tree) Command {
+func NewWithTree(name string, description chat.Translation, aliases []string, tree *Tree) Command {
 	return newCommand(name, description, aliases, tree, nil)
 }
 
-func newCommand(name, description string, aliases []string, tree *Tree, runnableValues []reflect.Value) Command {
+func newCommand(name string, description chat.Translation, aliases []string, tree *Tree, runnableValues []reflect.Value) Command {
 	name = strings.ToLower(name)
 	aliases = slices.Clone(aliases)
 	for i, alias := range aliases {
@@ -117,7 +118,7 @@ func (cmd Command) Name() string {
 
 // Description returns the description of the command. The description is shown in the /help list, and
 // provides information on the functionality of a command.
-func (cmd Command) Description() string {
+func (cmd Command) Description() chat.Translation {
 	return cmd.description
 }
 
@@ -218,7 +219,7 @@ func (cmd Command) Execute(args string, source Source, tx *world.Tx) {
 // by calling Command.Params().
 type ParamInfo struct {
 	Name        string
-	Description string
+	Description chat.Translation
 	Value       any
 	Optional    bool
 	Suffix      string

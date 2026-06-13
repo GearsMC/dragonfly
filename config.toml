@@ -44,3 +44,10 @@
   Folder = "resources"
   # Required configures whether the server will require players to have a resource pack to join.
   Required = true
+
+[Localization]
+  # Sunucu varsayılan dili. Console gibi locale bilgisi olmayan kaynaklar bu dili kullanir.
+  # Gömülü çeviriler: "tr" (Türkçe), "en" (English).
+  Language = "tr"
+  # Ek TOML çeviri dosyalarinin yükleneceği klasör. Boş bırakılırsa sadece gömülü çeviriler kullanilir.
+  Folder = ""

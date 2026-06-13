@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"github.com/df-mc/dragonfly/server/cmd"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/world"
 )
@@ -20,7 +21,7 @@ func (d DefaultGameModeCommand) Run(src cmd.Source, output *cmd.Output, tx *worl
 		return
 	}
 	tx.World().SetDefaultGameMode(mode.ToWorldGameMode())
-	output.Printf("Varsayılan oyun modu %s olarak ayarlandı.", mode)
+	output.Printt(i18n.T("%commands.defaultgamemode.success", 1), mode)
 	output.SetBroadcastScope(cmd.BroadcastPermitted).
 		SetRequiredPermissions(permission.CommandDefaultGameMode)
 }
@@ -28,7 +29,7 @@ func (d DefaultGameModeCommand) Run(src cmd.Source, output *cmd.Output, tx *worl
 // init, defaultgamemode komutunu kaydeder.
 func init() {
 	cmd.Register(cmd.NewWithTree("defaultgamemode",
-		"Varsayılan oyun modunu değiştirir.",
+		i18n.D("%df.cmd.defaultgamemode.description"),
 		[]string{"dgm"},
 		cmd.NewCommandTree(
 			cmd.Argument("mod", "", cmd.ArgumentSuggestions("GameMode", gamemodeSuggestions)).

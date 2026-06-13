@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/df-mc/dragonfly/server/cmd"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/permission"
 	"github.com/df-mc/dragonfly/server/world"
@@ -32,7 +33,7 @@ func (g GiveCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 	// Hedef oyuncuları çözümle
 	players := resolvePlayers(g.Target)
 	if len(players) == 0 {
-		output.Error("Hedef oyuncu bulunamadı.")
+		output.Errorm(src, "%df.generic.target.notfound")
 		return
 	}
 
@@ -51,7 +52,7 @@ func (g GiveCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 	// Merkezi item registry'sinden eşyayı bul (meta verisi ile)
 	itemType, ok := world.ItemByName(itemName, int16(data))
 	if !ok {
-		output.Errorf("Bilinmeyen eşya: %s", g.Item)
+		output.Errort(i18n.T("%commands.give.item.notFound", 1), g.Item)
 		return
 	}
 
@@ -59,7 +60,7 @@ func (g GiveCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 	amount := int32(1)
 	if amt, ok := g.Amount.Load(); ok {
 		if amt < 1 || amt > 32767 {
-			output.Errorf("Miktar 1 ile 32767 arasında olmalıdır, alındı: %d", amt)
+			output.Errorm(src, "%df.cmd.give.error.amount", amt)
 			return
 		}
 		amount = amt
@@ -91,7 +92,7 @@ func (g GiveCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 			if _, err := p.Inventory().AddItem(stack); err != nil {
 				// Envanter doluysa hatayı bildir
 				if remaining+give > 0 {
-					output.Errorf("%s oyuncusuna eşya verilirken envanter dolu: %v", p.Name(), err)
+					output.Errorm(src, "%df.cmd.give.error.inventory", p.Name(), err)
 				}
 				break
 			}
@@ -100,17 +101,18 @@ func (g GiveCommand) Run(src cmd.Source, output *cmd.Output, tx *world.Tx) {
 	}
 
 	// Başarı çıktısı
-	if data > 0 {
-		if givenCount == 1 {
-			output.Printf("%s oyuncusuna %d x %s (veri: %d) verildi.", players[0].Name(), amount, g.Item, data)
+	itemDisplay := g.Item
+	if len(players) == 1 {
+		if data > 0 {
+			output.Printm(src, "%df.cmd.give.success.data", players[0].Name(), amount, itemDisplay, data)
 		} else {
-			output.Printf("%d oyuncuya %d x %s (veri: %d) verildi.", givenCount, amount, g.Item, data)
+			output.Printm(src, "%df.cmd.give.success", players[0].Name(), amount, itemDisplay)
 		}
 	} else {
-		if givenCount == 1 {
-			output.Printf("%s oyuncusuna %d x %s verildi.", players[0].Name(), amount, g.Item)
+		if data > 0 {
+			output.Printm(src, "%df.cmd.give.success.data.multi", givenCount, amount, itemDisplay, data)
 		} else {
-			output.Printf("%d oyuncuya %d x %s verildi.", givenCount, amount, g.Item)
+			output.Printm(src, "%df.cmd.give.success.multi", givenCount, amount, itemDisplay)
 		}
 	}
 
@@ -139,7 +141,7 @@ func init() {
 
 	cmd.Register(cmd.NewWithTree(
 		"give",
-		"Oyuncuya eşya verir.",
+		i18n.D("%df.cmd.give.description"),
 		nil,
 		tree,
 	).WithPermissions(permission.CommandGive))
