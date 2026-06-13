@@ -4,7 +4,6 @@ import (
 	"context"
 	_ "embed"
 	"encoding/base64"
-	"fmt"
 	"iter"
 	"maps"
 	"os"
@@ -47,7 +46,7 @@ type Server struct {
 	once    sync.Once
 	started atomic.Pointer[time.Time]
 
-	world, nether, end *world.World
+	levelManager LevelManager
 
 	customBlocks []protocol.BlockEntry
 	customItems  []protocol.ItemEntry
@@ -157,23 +156,28 @@ func (srv *Server) Accept() iter.Seq[*player.Player] {
 	}
 }
 
-// World returns the overworld of the server. Players will be spawned in this
-// world and this world will be read from and written to when the world is
+// World returns the overworld of the default Level. Players will be spawned in
+// this world and this world will be read from and written to when the world is
 // edited.
 func (srv *Server) World() *world.World {
-	return srv.world
+	return srv.levelManager.DefaultLevel().Overworld
 }
 
-// Nether returns the nether world of the server. Players are transported to it
-// when entering a nether portal in the world returned by the World method.
+// Nether returns the nether world of the default Level. Players are transported
+// to it when entering a nether portal in the world returned by the World method.
 func (srv *Server) Nether() *world.World {
-	return srv.nether
+	return srv.levelManager.DefaultLevel().Nether
 }
 
-// End returns the end world of the server. Players are transported to it when
-// entering an end portal in the world returned by the World method.
+// End returns the end world of the default Level. Players are transported to it
+// when entering an end portal in the world returned by the World method.
 func (srv *Server) End() *world.World {
-	return srv.end
+	return srv.levelManager.DefaultLevel().End
+}
+
+// LevelManager returns the server's LevelManager.
+func (srv *Server) LevelManager() LevelManager {
+	return srv.levelManager
 }
 
 // MaxPlayerCount returns the maximum amount of players that are allowed to
@@ -426,11 +430,9 @@ func (srv *Server) close() {
 		srv.conf.Log.Error(i18n.M(nil, "%df.server.error.close_permission_provider"), "err", err)
 	}
 
-	srv.conf.Log.Debug(i18n.M(nil, "%df.server.closing.worlds"))
-	for _, w := range []*world.World{srv.end, srv.nether, srv.world} {
-		if err := w.Close(); err != nil {
-			srv.conf.Log.Error(i18n.M(nil, "%df.server.error.close_dimension", w.Dimension()), "err", err)
-		}
+	srv.conf.Log.Debug(i18n.M(nil, "%df.server.closing.levels"))
+	if err := srv.levelManager.Close(); err != nil {
+		srv.conf.Log.Error(i18n.M(nil, "%df.server.error.close_levels"), "err", err)
 	}
 
 	srv.conf.Log.Debug(i18n.M(nil, "%df.server.closing.listeners"))
@@ -552,9 +554,9 @@ func (srv *Server) finaliseConn(ctx context.Context, conn session.Conn, l Listen
 	xuid := identityData.XUID
 	data := srv.defaultGameData()
 
-	d, w, err := srv.conf.PlayerProvider.Load(xuid, srv.lookupWorld)
+	d, w, err := srv.conf.PlayerProvider.Load(xuid, srv.levelManager.LookupWorld)
 	if err != nil || w == nil {
-		w = srv.world
+		w = srv.levelManager.DefaultLevel().Overworld
 		d.Position = w.Spawn().Vec3Centre()
 		d.GameMode = w.DefaultGameMode()
 	}
@@ -596,21 +598,22 @@ func (srv *Server) finaliseConn(ctx context.Context, conn session.Conn, l Listen
 // may later be modified if the player was saved in the player provider of the
 // server.
 func (srv *Server) defaultGameData() minecraft.GameData {
-	gm, _ := world.GameModeID(srv.world.DefaultGameMode())
+	defaultWorld := srv.levelManager.DefaultLevel().Overworld
+	gm, _ := world.GameModeID(defaultWorld.DefaultGameMode())
 	return minecraft.GameData{
 		// Entity runtime/unique ID for the player itself is always 1 in df.
 		EntityUniqueID:  1,
 		EntityRuntimeID: 1,
 
-		WorldName:       srv.conf.Name,
+		WorldName:       srv.levelManager.DefaultLevel().Overworld.Name(),
 		BaseGameVersion: protocol.CurrentVersion,
 
-		Time:       int64(srv.world.Time()),
+		Time:       int64(defaultWorld.Time()),
 		Difficulty: 2,
 
 		PlayerGameMode:    int32(gm),
 		PlayerPermissions: packet.PermissionLevelMember,
-		PlayerPosition:    vec64To32(srv.world.Spawn().Vec3Centre().Add(mgl64.Vec3{0, 1.62})),
+		PlayerPosition:    vec64To32(defaultWorld.Spawn().Vec3Centre().Add(mgl64.Vec3{0, 1.62})),
 
 		Items:        srv.itemEntries(),
 		CustomBlocks: srv.customBlocks,
@@ -624,17 +627,6 @@ func (srv *Server) defaultGameData() minecraft.GameData {
 			ServerAuthoritativeBlockBreaking: true,
 		},
 	}
-}
-
-// lookupWorld, kayıtlı dünya adı ve dimension bilgisiyle eşleşen sunucu dünyasını döndürür.
-// Adı bulunmayan eski kayıtlar yalnızca dimension bilgisiyle çözümlenir.
-func (srv *Server) lookupWorld(name string, dimension world.Dimension) *world.World {
-	for _, w := range [...]*world.World{srv.world, srv.nether, srv.end} {
-		if w.Dimension() == dimension && (name == "" || w.Name() == name) {
-			return w
-		}
-	}
-	return nil
 }
 
 // handleSessionClose handles the closing of a session. It removes the player
@@ -768,40 +760,6 @@ func connLocale(c session.Conn) language.Tag {
 		return i18n.Default()
 	}
 	return tag
-}
-
-// createWorld loads a world with a specific dimension using the provider set
-// in the Config. The nether and end dimensions point to the worlds that players
-// are moved to when passing through the respective portals.
-func (srv *Server) createWorld(dim world.Dimension, nether, end **world.World) *world.World {
-	logger := srv.conf.Log.With("dimension", strings.ToLower(fmt.Sprint(dim)))
-	logger.Debug(i18n.M(nil, "%df.server.world.loading"))
-
-	conf := world.Config{
-		Log:                 logger,
-		Dim:                 dim,
-		Provider:            srv.conf.WorldProvider,
-		Generator:           srv.conf.Generator(dim),
-		RandomTickSpeed:     srv.conf.RandomTickSpeed,
-		ReadOnly:            srv.conf.ReadOnlyWorld,
-		SaveInterval:        srv.conf.SaveInterval,
-		ChunkUnloadInterval: srv.conf.ChunkUnloadInterval,
-		Entities:            srv.conf.Entities,
-		Blocks:              srv.conf.Blocks,
-		PortalDestination: func(dim world.Dimension) *world.World {
-			switch dim {
-			case world.Nether:
-				return *nether
-			case world.End:
-				return *end
-			default:
-				return nil
-			}
-		},
-	}
-	w := conf.New()
-	logger.Info(i18n.M(nil, "%df.server.world.opened"), "name", w.Name())
-	return w
 }
 
 // parseSkin parses a skin from the login.ClientData and returns it.

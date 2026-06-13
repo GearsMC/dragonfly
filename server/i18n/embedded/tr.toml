@@ -253,3 +253,24 @@
 "%df.whitelist.error.load" = "whitelist dosyasi okunamadi: %v"
 "%df.whitelist.error.save" = "whitelist dosyasi kaydedilemedi: %v"
 "%df.whitelist.error.marshal" = "whitelist verisi serileştirilemedi: %v"
+
+# Sunucu lifecycle
+"%df.server.error.load_levels" = "Level'ler yüklenirken hata oluştu: %v"
+"%df.server.closing.levels" = "Level'ler kapatiliyor..."
+"%df.server.error.close_levels" = "Level'ler kapatilirken hata oluştu: %v"
+
+# /world komutu
+"%df.cmd.world.description" = "Çoklu dünya yönetim komutu."
+"%df.cmd.world.list.empty" = "Yüklenmiş level yok."
+"%df.cmd.world.list" = "Yüklenmiş Level'ler (%v): %v"
+"%df.cmd.world.error.invalid_dimension" = "Geçersiz dimension: %v"
+"%df.cmd.world.error.not_found" = "Level bulunamadi: %v"
+"%df.cmd.world.error.teleport" = "Işinlanma başarisiz: %v"
+"%df.cmd.world.tp.success" = "%v Level'ine ışınlandiniz (%v)."
+"%df.cmd.world.error.create" = "Level %v oluşturulamadi: %v"
+"%df.cmd.world.create.success" = "Level %v oluşturuldu."
+"%df.cmd.world.error.no_default" = "Varsayilan level ayarlanmamış."
+"%df.cmd.world.error.unload" = "Level %v kapatilamadi: %v"
+"%df.cmd.world.unload.success" = "Level %v kapatildi."
+"%df.cmd.world.error.setdefault" = "Varsayilan level %v ayarlanamadi: %v"
+"%df.cmd.world.setdefault.success" = "Varsayilan level %v olarak ayarlandi."

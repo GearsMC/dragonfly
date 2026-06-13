@@ -21,7 +21,6 @@ import (
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/df-mc/dragonfly/server/world/biome"
 	"github.com/df-mc/dragonfly/server/world/generator"
-	"github.com/df-mc/dragonfly/server/world/mcdb"
 	"github.com/google/uuid"
 	"github.com/sandertv/gophertunnel/minecraft"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
@@ -88,36 +87,27 @@ type Config struct {
 	// Permissions, XUID tabanlı operatör kayıtlarını ve permission ağacını yönetir.
 	// Nil bırakılırsa bellek içi boş bir manager kullanılır.
 	Permissions *permission.Manager
-	// WorldProvider is the world.Provider used for storing and loading world
-	// data. If left as nil, world data will be newly created every time and
-	// chunks will always be newly generated when loaded. The world provider
-	// will be used for storing/loading the default overworld, nether and end.
-	WorldProvider world.Provider
-	// ReadOnlyWorld specifies if the standard worlds should be read only. If
-	// set to true, the WorldProvider won't be saved to at all.
+	// LevelManager, sunucudaki çoklu Level yapısını yönetir. Nil bırakılırsa
+	// worlds/ klasöründen Level'leri otomatik yükleyen varsayılan yönetici kullanılır.
+	LevelManager LevelManager
+	// WorldsFolder, Level'lerin saklandığı kök klasördür. Varsayılan "worlds".
+	WorldsFolder string
+	// DefaultLevel, oyuncuların giriş yaptığında ve bir hedef belirtilmediğinde
+	// doğduğu Level'in adıdır. Varsayılan "world" veya alfabetik ilk Level.
+	DefaultLevel string
+	// OpenLevelProvider, bir Level için veri sağlayıcısı açan fonksiyondur.
+	// Nil bırakılırsa worlds/<isim> kök yolunda mcdb kullanılır.
+	OpenLevelProvider func(folder string) (world.Provider, error)
+	// ReadOnlyWorld, tüm Level'lerin salt okunur olup olmadığını belirtir.
 	ReadOnlyWorld bool
-	// Generator should return a function that specifies the world.Generator to
-	// use for every world.Dimension (world.Overworld, world.Nether and
-	// world.End). If left empty, Generator will be set to a flat world for each
-	// of the dimensions (with netherrack and end stone for nether/end
-	// respectively).
-	Generator func(dim world.Dimension) world.Generator
-	// RandomTickSpeed specifies the rate at which blocks should be ticked in
-	// the default worlds. Setting this value to -1 or lower will stop random
-	// ticking altogether, while setting it higher results in faster ticking. If
-	// left as 0, the RandomTickSpeed will default to a speed of 3 blocks per
-	// sub chunk per tick (normal ticking speed).
+	// Generator, Level adı ve dimension'a göre generator seçen fonksiyondur.
+	// Nil bırakılırsa her dimension için düz generator kullanılır.
+	Generator func(levelName string, dim world.Dimension) world.Generator
+	// RandomTickSpeed, tüm Level'lerdeki random tick hızıdır. 0 bırakılırsa 3 kullanılır.
 	RandomTickSpeed int
-	// SaveInterval specifies how often a World should be automatically saved to
-	// disk. This includes chunks, entities and level.dat data. If ReadOnlyWorld
-	// is set to true, changing SaveInterval will have no effect.
-	// By default, SaveInterval is set to 10 minutes. Setting SaveInterval to
-	// a negative number disables automatic saving entirely.
+	// SaveInterval, otomatik kayıt aralığıdır. Varsayılan 10 dakika.
 	SaveInterval time.Duration
-	// ChunkUnloadInterval specifies how often unused chunks should be unloaded
-	// from memory when no longer in use. By default, this is set to 2 minutes.
-	// ChunkUnloadInterval should not be used to prevent chunks from unloading
-	// altogether. This should be done using a Loader with a custom Viewer.
+	// ChunkUnloadInterval, kullanılmayan chunk'ların atılma aralığıdır. Varsayılan 2 dakika.
 	ChunkUnloadInterval time.Duration
 	// Entities is a world.EntityRegistry with all entity types registered that
 	// may be added to the Server's worlds. If no entity types are registered,
@@ -154,11 +144,13 @@ func (conf Config) New() *Server {
 	if conf.Allower == nil {
 		conf.Allower = allower{}
 	}
-	if conf.WorldProvider == nil {
-		conf.WorldProvider = world.NopProvider{}
+	if conf.WorldsFolder == "" {
+		conf.WorldsFolder = "worlds"
 	}
 	if conf.Generator == nil {
-		conf.Generator = loadGenerator
+		conf.Generator = func(_ string, dim world.Dimension) world.Generator {
+			return loadGenerator(dim)
+		}
 	}
 	if conf.MaxChunkRadius == 0 {
 		conf.MaxChunkRadius = 12
@@ -191,7 +183,6 @@ func (conf Config) New() *Server {
 		incoming: make(chan incoming),
 		p:        make(map[uuid.UUID]*onlinePlayer),
 		px:       make(map[string]*onlinePlayer),
-		world:    &world.World{}, nether: &world.World{}, end: &world.World{},
 	}
 	srv.unregisterCommandListener = cmd.ListenRegistryChanges(srv.refreshAllCommands)
 	for _, lf := range conf.Listeners {
@@ -205,9 +196,26 @@ func (conf Config) New() *Server {
 	creative_registerCreativeItems()
 	recipe_registerVanilla()
 
-	srv.world = srv.createWorld(world.Overworld, &srv.nether, &srv.end)
-	srv.nether = srv.createWorld(world.Nether, &srv.world, &srv.end)
-	srv.end = srv.createWorld(world.End, &srv.nether, &srv.world)
+	if conf.LevelManager == nil {
+		srv.levelManager = newLevelManager(levelManagerConfig{
+			log:                 conf.Log,
+			worldsFolder:        conf.WorldsFolder,
+			defaultLevel:        conf.DefaultLevel,
+			generator:           conf.Generator,
+			openProvider:        conf.OpenLevelProvider,
+			blocks:              conf.Blocks,
+			entities:            conf.Entities,
+			randomTickSpeed:     conf.RandomTickSpeed,
+			saveInterval:        conf.SaveInterval,
+			chunkUnloadInterval: conf.ChunkUnloadInterval,
+			readOnly:            conf.ReadOnlyWorld,
+		})
+	} else {
+		srv.levelManager = conf.LevelManager
+	}
+	if err := srv.levelManager.LoadLevelsFromDisk(); err != nil {
+		conf.Log.Error(i18n.M(nil, "%df.server.error.load_levels"), "err", err)
+	}
 
 	return srv
 }
@@ -232,15 +240,12 @@ type UserConfig struct {
 		// MuteEmoteChat specifies if the player emote chat should be muted or not.
 		MuteEmoteChat bool
 	}
-	World struct {
-		// SaveData controls whether a world's data will be saved and loaded.
-		// If true, the server will use the default LevelDB data provider and if
-		// false, an empty provider will be used. To use your own provider, turn
-		// this value to false, as you will still be able to pass your own
-		// provider.
-		SaveData bool
-		// Folder is the folder that the data of the world resides in.
+	Worlds struct {
+		// Folder, Level'lerin saklandığı kök klasördür. Varsayılan "worlds".
 		Folder string
+		// Default, oyuncuların giriş yaptığında doğduğu varsayılan Level'in adıdır.
+		// Boş bırakılırsa "world" veya alfabetik ilk Level seçilir.
+		Default string
 	}
 	Players struct {
 		// MaxCount is the maximum amount of players allowed to join the server
@@ -313,12 +318,8 @@ func (uc UserConfig) Config(log *slog.Logger) (Config, error) {
 	if uc.Localization.Folder != "" {
 		_ = i18n.LoadFolder(uc.Localization.Folder)
 	}
-	if uc.World.SaveData {
-		conf.WorldProvider, err = mcdb.Config{Log: log}.Open(uc.World.Folder)
-		if err != nil {
-			return conf, fmt.Errorf("%s: %w", i18n.R("%df.config.error.create_world_provider"), err)
-		}
-	}
+	conf.WorldsFolder = uc.Worlds.Folder
+	conf.DefaultLevel = uc.Worlds.Default
 	conf.Resources, err = loadResources(uc.Resources.Folder)
 	if err != nil {
 		return conf, fmt.Errorf("%s: %w", i18n.R("%df.config.error.load_resources"), err)
@@ -376,8 +377,8 @@ func DefaultConfig() UserConfig {
 	c := UserConfig{}
 	c.Network.Address = ":19132"
 	c.Server.Name = "Dragonfly Server"
-	c.World.SaveData = true
-	c.World.Folder = "world"
+	c.Worlds.Folder = "worlds"
+	c.Worlds.Default = "world"
 	c.Players.MaximumChunkRadius = 32
 	c.Players.SaveData = true
 	c.Players.Folder = "players"

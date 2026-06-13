@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/df-mc/dragonfly/server/block/cube"
@@ -28,6 +29,8 @@ type DB struct {
 	dir  string
 	ldat *leveldat.Data
 	set  *world.Settings
+
+	levelDataMu sync.Mutex
 }
 
 // Open creates a new provider reading and writing from/to files under the path
@@ -56,7 +59,10 @@ func (db *DB) Settings() *world.Settings {
 
 // SaveSettings saves the world.Settings passed to the level.dat.
 func (db *DB) SaveSettings(s *world.Settings) {
-	db.ldat.PutSettings(s)
+	snapshot := s.Snapshot()
+	db.levelDataMu.Lock()
+	db.ldat.PutSettings(&snapshot)
+	db.levelDataMu.Unlock()
 }
 
 // LoadColumn reads a world.Column from the DB at a position and dimension in
@@ -416,16 +422,20 @@ func (db *DB) NewColumnIterator(r *IteratorRange) *ColumnIterator {
 
 // Close closes the provider, saving any file that might need to be saved, such as the level.dat.
 func (db *DB) Close() error {
+	db.levelDataMu.Lock()
 	db.ldat.LastPlayed = time.Now().Unix()
 
 	var ldat leveldat.LevelDat
 	if err := ldat.Marshal(*db.ldat); err != nil {
+		db.levelDataMu.Unlock()
 		return fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.close_marshal"), err)
 	}
+	levelName := db.ldat.LevelName
+	db.levelDataMu.Unlock()
 	if err := ldat.WriteFile(filepath.Join(db.dir, "level.dat")); err != nil {
 		return fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.close_write"), err)
 	}
-	if err := os.WriteFile(filepath.Join(db.dir, "levelname.txt"), []byte(db.ldat.LevelName), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(db.dir, "levelname.txt"), []byte(levelName), 0644); err != nil {
 		return fmt.Errorf("%s: %w", i18n.R("%df.world.mcdb.close_levelname"), err)
 	}
 	return db.ldb.Close()

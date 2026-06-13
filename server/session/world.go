@@ -49,29 +49,49 @@ func (s *Session) entityHidden(e world.Entity) bool {
 	return ok
 }
 
+func (s *Session) assignRuntimeID(e world.Entity) uint64 {
+	if e.H() == s.ent {
+		return selfEntityRuntimeID
+	}
+	if s.entityHidden(e) {
+		return 0
+	}
+
+	s.entityMutex.Lock()
+	defer s.entityMutex.Unlock()
+
+	if id, ok := s.entityRuntimeIDs[e.H()]; ok {
+		return id
+	}
+	s.currentEntityRuntimeID += 1
+	runtimeID := s.currentEntityRuntimeID
+	s.entityRuntimeIDs[e.H()] = runtimeID
+	s.entities[runtimeID] = e.H()
+	return runtimeID
+}
+
+// AssignRuntimeID assigns a runtime ID to an entity without sending packets.
+func (s *Session) AssignRuntimeID(e world.Entity) {
+	s.assignRuntimeID(e)
+}
+
+func (s *Session) entityRuntimeIDIfShown(e world.Entity) (uint64, bool) {
+	s.entityMutex.RLock()
+	id, ok := s.entityRuntimeIDs[e.H()]
+	s.entityMutex.RUnlock()
+	return id, ok
+}
+
 // ViewEntity ...
 func (s *Session) ViewEntity(e world.Entity) {
-	if e.H() == s.ent {
+	runtimeID := s.assignRuntimeID(e)
+	if runtimeID == selfEntityRuntimeID {
 		s.ViewEntityState(e)
 		return
 	}
-	if s.entityHidden(e) {
+	if runtimeID == 0 {
 		return
 	}
-	var runtimeID uint64
-
-	_, controllable := e.(Controllable)
-
-	s.entityMutex.Lock()
-	if id, ok := s.entityRuntimeIDs[e.H()]; ok && controllable {
-		runtimeID = id
-	} else {
-		s.currentEntityRuntimeID += 1
-		runtimeID = s.currentEntityRuntimeID
-		s.entityRuntimeIDs[e.H()] = runtimeID
-		s.entities[runtimeID] = e.H()
-	}
-	s.entityMutex.Unlock()
 
 	yaw, pitch := e.Rotation().Elem()
 	metadata := s.entityMetadata(e)
@@ -172,21 +192,22 @@ func (s *Session) ViewEntityGameMode(e world.Entity) {
 
 // HideEntity ...
 func (s *Session) HideEntity(e world.Entity) {
-	if s.entityRuntimeID(e) == selfEntityRuntimeID {
-		return
-	}
-
 	s.entityMutex.Lock()
 	id, ok := s.entityRuntimeIDs[e.H()]
+	if !ok {
+		// Entity hiç gösterilmediyse kapatma paketi göndermeye gerek yoktur.
+		s.entityMutex.Unlock()
+		return
+	}
+	if id == selfEntityRuntimeID {
+		s.entityMutex.Unlock()
+		return
+	}
 	if _, controllable := e.(Controllable); !controllable {
 		delete(s.entityRuntimeIDs, e.H())
 		delete(s.entities, id)
 	}
 	s.entityMutex.Unlock()
-	if !ok {
-		// The entity was already removed some other way. We don't need to send a packet.
-		return
-	}
 	s.writePacket(&packet.RemoveActor{EntityUniqueID: int64(id)})
 }
 
@@ -1025,9 +1046,17 @@ func (s *Session) ViewEntityAction(e world.Entity, a world.EntityAction) {
 			EventType:       packet.ActorEventDeath,
 		})
 	case entity.PickedUpAction:
+		itemRuntimeID, ok := s.entityRuntimeIDIfShown(e)
+		if !ok {
+			return
+		}
+		collectorRuntimeID, ok := s.entityRuntimeIDIfShown(act.Collector)
+		if !ok {
+			return
+		}
 		s.writePacket(&packet.TakeItemActor{
-			ItemEntityRuntimeID:  s.entityRuntimeID(e),
-			TakerEntityRuntimeID: s.entityRuntimeID(act.Collector),
+			ItemEntityRuntimeID:  itemRuntimeID,
+			TakerEntityRuntimeID: collectorRuntimeID,
 		})
 	case entity.ArrowShakeAction:
 		s.writePacket(&packet.ActorEvent{

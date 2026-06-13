@@ -57,3 +57,28 @@ func defaultSettings() *Settings {
 		TickRange:       6,
 	}
 }
+
+// Snapshot returns a copy of the Settings fields protected by the Settings
+// lock. The returned value has a fresh mutex/ref and may safely be used for
+// serialisation without racing concurrent world updates.
+func (s *Settings) Snapshot() Settings {
+	s.Lock()
+	defer s.Unlock()
+
+	return Settings{
+		Name:               s.Name,
+		Spawn:              s.Spawn,
+		Time:               s.Time,
+		TimeCycle:          s.TimeCycle,
+		RainTime:           s.RainTime,
+		Raining:            s.Raining,
+		ThunderTime:        s.ThunderTime,
+		Thundering:         s.Thundering,
+		WeatherCycle:       s.WeatherCycle,
+		RequiredSleepTicks: s.RequiredSleepTicks,
+		CurrentTick:        s.CurrentTick,
+		DefaultGameMode:    s.DefaultGameMode,
+		Difficulty:         s.Difficulty,
+		TickRange:          s.TickRange,
+	}
+}

@@ -44,13 +44,19 @@ func (t ticker) tick(tx *Tx) {
 		w.metrics.SetState(len(w.chunks), len(w.entities), len(viewers))
 	}()
 
+	directActive := len(viewers) > 0
+	active := directActive
+	if !active && w.conf.Active != nil {
+		active = w.conf.Active()
+	}
+
 	w.set.Lock()
 	if s := w.set.Spawn; s[1] > tx.Range()[1] && w.Dimension() == Overworld {
 		// Vanilla will set the spawn position's Y value to max to indicate that
 		// the player should spawn at the highest position in the world.
 		w.set.Spawn[1] = w.highestObstructingBlock(s[0], s[2]) + 1
 	}
-	if len(viewers) == 0 && w.set.CurrentTick != 0 {
+	if !active && w.set.CurrentTick != 0 {
 		// Don't continue ticking if no viewers are in the world.
 		w.set.Unlock()
 		return
@@ -68,12 +74,15 @@ func (t ticker) tick(tx *Tx) {
 	rain, thunder, tick, tim, cycle := w.set.Raining, w.set.Thundering && w.set.Raining, w.set.CurrentTick, int(w.set.Time), w.set.TimeCycle
 
 	tryAdvanceDay := false
-	if tx.w.set.RequiredSleepTicks > 0 {
+	if w.advance && directActive && tx.w.set.RequiredSleepTicks > 0 {
 		tx.w.set.RequiredSleepTicks--
 		tryAdvanceDay = tx.w.set.RequiredSleepTicks <= 0
 	}
 
 	w.set.Unlock()
+	if !directActive {
+		return
+	}
 
 	if tryAdvanceDay {
 		t.tryAdvanceDay(tx, cycle)

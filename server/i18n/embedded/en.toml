@@ -253,3 +253,24 @@
 "%df.whitelist.error.load" = "failed to read whitelist file: %v"
 "%df.whitelist.error.save" = "failed to save whitelist file: %v"
 "%df.whitelist.error.marshal" = "failed to marshal whitelist data: %v"
+
+# Server lifecycle
+"%df.server.error.load_levels" = "failed to load levels: %v"
+"%df.server.closing.levels" = "Closing levels..."
+"%df.server.error.close_levels" = "failed to close levels: %v"
+
+# /world command
+"%df.cmd.world.description" = "Multi-world management command."
+"%df.cmd.world.list.empty" = "No levels loaded."
+"%df.cmd.world.list" = "Loaded levels (%v): %v"
+"%df.cmd.world.error.invalid_dimension" = "Invalid dimension: %v"
+"%df.cmd.world.error.not_found" = "Level not found: %v"
+"%df.cmd.world.error.teleport" = "Teleport failed: %v"
+"%df.cmd.world.tp.success" = "Teleported to level %v (%v)."
+"%df.cmd.world.error.create" = "Failed to create level %v: %v"
+"%df.cmd.world.create.success" = "Level %v created."
+"%df.cmd.world.error.no_default" = "No default level is set."
+"%df.cmd.world.error.unload" = "Failed to unload level %v: %v"
+"%df.cmd.world.unload.success" = "Level %v unloaded."
+"%df.cmd.world.error.setdefault" = "Failed to set default level %v: %v"
+"%df.cmd.world.setdefault.success" = "Default level set to %v."

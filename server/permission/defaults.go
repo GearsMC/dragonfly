@@ -8,6 +8,7 @@ const (
 	CommandList            = "dfmc.command.list"
 	CommandMe              = "dfmc.command.me"
 	CommandVersion         = "dfmc.command.version"
+	CommandWorld           = "dfmc.command.world"
 	CommandStatus          = "dfmc.command.status"
 	CommandTPS             = "dfmc.command.tps"
 	CommandStop            = "dfmc.command.stop"
@@ -71,6 +72,7 @@ func RegisterDefaults(registry *Registry) {
 		CommandTime:                    true,
 		CommandWeather:                 true,
 		CommandWhitelist:               true,
+		CommandWorld:                   true,
 		CommandXP:                      true,
 		AbilityOperatorCommandQuickBar: true,
 		AbilityFlySurvival:             true,
@@ -107,6 +109,7 @@ func RegisterDefaults(registry *Registry) {
 		New(CommandTime, "Dünya zamanını değiştirme izni."),
 		New(CommandWeather, "Hava durumunu değiştirme izni."),
 		New(CommandWhitelist, "Whitelist yönetme izni."),
+		New(CommandWorld, "Çoklu dünya komutunu kullanma izni."),
 		New(CommandXP, "Deneyim verme veya alma izni."),
 		New(AbilityChat, "Sohbet gönderme izni."),
 		New(AbilityOperatorCommandQuickBar, "Operatör komut hızlı erişim çubuğunu kullanma izni."),

@@ -1079,7 +1079,7 @@ func (w *World) close() {
 	close(w.queueClosing)
 	w.queueing.Wait()
 
-	if w.set.ref.Add(-1); !w.advance {
+	if remaining := w.set.ref.Add(-1); remaining != 0 {
 		return
 	}
 	w.conf.Log.Debug(i18n.R("%df.world.close_provider"))
@@ -1121,13 +1121,33 @@ func (w *World) addWorldViewer(l *Loader) {
 // addViewer adds a viewer to the World at a given position. Any events that
 // happen in the chunk at that position, such as block and entity changes, will
 // be sent to the viewer.
+type entityRuntimeIDAssigner interface {
+	AssignRuntimeID(e Entity)
+}
+
 func (w *World) addViewer(tx *Tx, c *Column, loader *Loader) {
+	entities := make([]Entity, 0, len(c.Entities))
+	for _, handle := range c.Entities {
+		entities = append(entities, handle.mustEntity(tx))
+	}
+
+	// Sahipli entity metadata'sı owner runtime ID'sine ihtiyaç duyar. Bu yüzden
+	// showEntity çağrılarından önce chunk'taki tüm entity runtime ID'leri kayıt
+	// edilir; owner listede daha sonra gelse bile çözümleme log spam'i üretmez.
+	if assigner, ok := loader.viewer.(entityRuntimeIDAssigner); ok {
+		for _, e := range entities {
+			assigner.AssignRuntimeID(e)
+		}
+	}
+
+	for _, e := range entities {
+		showEntity(e, loader.viewer)
+	}
+
+	// Viewer, runtime ID'ler kaydedilmeden yayınlanmamalı; aksi halde tick
+	// içindeki hareket/durum paketleri henüz eşlenmemiş entity'ler için gider.
 	c.viewers = append(c.viewers, loader.viewer)
 	c.loaders = append(c.loaders, loader)
-
-	for _, entity := range c.Entities {
-		showEntity(entity.mustEntity(tx), loader.viewer)
-	}
 }
 
 // removeViewer removes a viewer from a chunk position. All entities will be
@@ -1345,6 +1365,13 @@ func (w *World) columnFrom(c *chunk.Column, _ ChunkPos) *Column {
 		eid, ok := e.Data["identifier"].(string)
 		if !ok {
 			w.conf.Log.Error(i18n.R("%df.world.column.entity_no_id", e.ID), "ID", e.ID)
+			continue
+		}
+		// "minecraft:player" entity'leri chunk içinde kayıtlı olabilir; bunlar
+		// sunucu tarafından yönetilen oyuncu entity'leri olmadığından ve
+		// EntityRegistry'de karşılığı bulunmadığından log spam'ini engellemek
+		// için sessizce atlanır.
+		if eid == "minecraft:player" {
 			continue
 		}
 		t, ok := w.conf.Entities.Lookup(eid)

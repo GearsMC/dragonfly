@@ -41,6 +41,9 @@ type Config struct {
 	// ReadOnly specifies if the World should be read-only, meaning no new data
 	// will be written to the Provider.
 	ReadOnly bool
+	// Active returns true if the World should continue ticking even when it has
+	// no direct viewers. This is useful for dimensions that share level settings.
+	Active func() bool
 	// SaveInterval specifies how often a World should be automatically saved to
 	// disk. This includes chunks, entities and level.dat data. If ReadOnly is
 	// set to false, changing SaveInterval will have no effect.

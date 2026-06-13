@@ -35,6 +35,7 @@ func main() {
 
 	srv := conf.New()
 	builtin.RegisterServer(srv)
+	builtin.RegisterWorld(srv)
 	builtin.RegisterWhitelist(srv, wl)
 	srv.CloseOnProgramEnd()
 
