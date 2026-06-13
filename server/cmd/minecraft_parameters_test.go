@@ -56,7 +56,7 @@ func TestCoordinateParsing(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		coord, err := ParseCoordinate(tt.input)
+		coord, err := ParseCoordinate(nil, tt.input)
 		if err != nil {
 			t.Errorf("ParseCoordinate(%s): %v", tt.input, err)
 			continue

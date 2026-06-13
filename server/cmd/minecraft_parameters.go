@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/go-gl/mathgl/mgl64"
 )
@@ -64,7 +65,7 @@ func ParseGameMode(src Source, input string) (GameMode, error) {
 	case "3", "spectator", "spc", "sp":
 		return GameModeSpectator, nil
 	}
-	return 0, fmt.Errorf("geçersiz oyun modu: %s", input)
+	return 0, fmt.Errorf("%s", i18n.M(src, "%df.cmd.error.invalid_gamemode", input))
 }
 
 // Difficulty, Minecraft zorluk seviyeleri
@@ -121,7 +122,7 @@ func ParseDifficulty(src Source, input string) (Difficulty, error) {
 	case "3", "hard", "h":
 		return DifficultyHard, nil
 	}
-	return 0, fmt.Errorf("geçersiz zorluk seviyesi: %s", input)
+	return 0, fmt.Errorf("%s", i18n.M(src, "%df.cmd.error.invalid_difficulty", input))
 }
 
 // CoordinateMode, koordinat modunun türü
@@ -167,8 +168,9 @@ func (c Coordinate) String() string {
 }
 
 // ParseCoordinate, string'ten Coordinate'ye dönüştürür.
-func ParseCoordinate(input string) (Coordinate, error) {
-	if strings.HasPrefix(input, "~") {
+func ParseCoordinate(src Source, input string) (Coordinate, error) {
+	switch {
+	case strings.HasPrefix(input, "~"):
 		// Göreceli konum
 		rest := strings.TrimPrefix(input, "~")
 		if rest == "" {
@@ -176,10 +178,10 @@ func ParseCoordinate(input string) (Coordinate, error) {
 		}
 		val, err := strconv.ParseFloat(rest, 64)
 		if err != nil {
-			return Coordinate{}, fmt.Errorf("geçersiz göreceli koordinat: %s", input)
+			return Coordinate{}, fmt.Errorf("%s", i18n.M(src, "%df.cmd.error.invalid_relative_coord", input))
 		}
 		return Coordinate{Mode: CoordinateRelative, Value: val}, nil
-	} else if strings.HasPrefix(input, "^") {
+	case strings.HasPrefix(input, "^"):
 		// Caret konumu
 		rest := strings.TrimPrefix(input, "^")
 		if rest == "" {
@@ -187,14 +189,14 @@ func ParseCoordinate(input string) (Coordinate, error) {
 		}
 		val, err := strconv.ParseFloat(rest, 64)
 		if err != nil {
-			return Coordinate{}, fmt.Errorf("geçersiz caret koordinat: %s", input)
+			return Coordinate{}, fmt.Errorf("%s", i18n.M(src, "%df.cmd.error.invalid_caret_coord", input))
 		}
 		return Coordinate{Mode: CoordinateCaret, Value: val}, nil
-	} else {
+	default:
 		// Mutlak konum
 		val, err := strconv.ParseFloat(input, 64)
 		if err != nil {
-			return Coordinate{}, fmt.Errorf("geçersiz mutlak koordinat: %s", input)
+			return Coordinate{}, fmt.Errorf("%s", i18n.M(src, "%df.cmd.error.invalid_absolute_coord", input))
 		}
 		return Coordinate{Mode: CoordinateAbsolute, Value: val}, nil
 	}
@@ -242,26 +244,26 @@ func (r IntRange) String() string {
 }
 
 // ParseIntRange, string'ten IntRange'e dönüştürür.
-func ParseIntRange(input string) (IntRange, error) {
+func ParseIntRange(src Source, input string) (IntRange, error) {
 	if strings.Contains(input, "..") {
 		parts := strings.Split(input, "..")
 		if len(parts) != 2 {
-			return IntRange{}, fmt.Errorf("geçersiz aralık formatı: %s", input)
+			return IntRange{}, fmt.Errorf("%s", i18n.M(src, "%df.cmd.error.invalid_range_format", input))
 		}
 		min, err := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 32)
 		if err != nil {
-			return IntRange{}, fmt.Errorf("minimum sayı geçersiz: %s", parts[0])
+			return IntRange{}, fmt.Errorf("%s", i18n.M(src, "%df.cmd.error.invalid_range_min", parts[0]))
 		}
 		max, err := strconv.ParseInt(strings.TrimSpace(parts[1]), 10, 32)
 		if err != nil {
-			return IntRange{}, fmt.Errorf("maksimum sayı geçersiz: %s", parts[1])
+			return IntRange{}, fmt.Errorf("%s", i18n.M(src, "%df.cmd.error.invalid_range_max", parts[1]))
 		}
 		return IntRange{Min: int32(min), Max: int32(max)}, nil
 	}
 
 	val, err := strconv.ParseInt(input, 10, 32)
 	if err != nil {
-		return IntRange{}, fmt.Errorf("geçersiz sayı: %s", input)
+		return IntRange{}, fmt.Errorf("%s", i18n.M(src, "%df.cmd.error.invalid_number", input))
 	}
 	intVal := int32(val)
 	return IntRange{Min: intVal, Max: intVal}, nil

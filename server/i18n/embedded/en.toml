@@ -153,3 +153,77 @@
 "%df.whitelist.status.enabled" = "enabled"
 "%df.whitelist.status.disabled" = "disabled"
 "%df.whitelist.usage" = "Usage: /whitelist <on|off|add|remove|list|reload>"
+
+# Server lifecycle and connection messages
+"%df.server.started" = "Dragonfly server started."
+"%df.server.closed" = "Server closed."
+"%df.server.closing" = "Server closing..."
+"%df.server.closing.disconnecting" = "Disconnecting players..."
+"%df.server.closing.player_provider" = "Closing player provider..."
+"%df.server.closing.permission_provider" = "Closing permission provider..."
+"%df.server.closing.worlds" = "Closing worlds..."
+"%df.server.closing.listeners" = "Closing listeners..."
+"%df.server.world.loading" = "Loading dimension..."
+"%df.server.world.opened" = "Opened dimension."
+"%df.server.auth.rejected" = "Unauthenticated connection rejected."
+"%df.server.error.already_started" = "start server: already started"
+"%df.server.error.not_running" = "server not yet running"
+"%df.server.error.close_player_provider" = "Error closing player provider"
+"%df.server.error.close_permission_provider" = "Error closing permission provider"
+"%df.server.error.close_dimension" = "Error closing dimension %v"
+"%df.server.error.close_listener" = "Error closing listener"
+"%df.server.error.save_player" = "Error saving player data"
+"%df.server.error.spawn_failed" = "Failed to spawn player: %v"
+"%df.server.error.already_logged_in" = "Player already logged in"
+"%df.server.error.already_logged_in_uuid" = "Player already logged in with UUID"
+"%df.server.warn.identity_index" = "Player identity index could not be updated"
+"%df.server.warn.operator_identity" = "Operator identity record could not be updated"
+
+# Disconnect messages
+"%df.disconnect.connection_closed" = "Connection closed."
+"%df.disconnect.xbox_required" = "Xbox Live authentication is required."
+"%df.disconnect.timeout" = "Connection timeout."
+"%df.disconnect.already_logged_in" = "Already logged in."
+
+# Whitelist disconnect messages
+"%df.whitelist.disconnect.no_xuid" = "XUID not found, you must sign in with Xbox Live."
+"%df.whitelist.disconnect.not_whitelisted" = "You are not whitelisted."
+
+# Jukebox
+"%df.jukebox.now_playing" = "Now playing: %v - %v"
+
+# Command parameter errors
+"%df.cmd.error.invalid_gamemode" = "Invalid game mode: %v"
+"%df.cmd.error.invalid_difficulty" = "Invalid difficulty: %v"
+"%df.cmd.error.invalid_relative_coord" = "Invalid relative coordinate: %v"
+"%df.cmd.error.invalid_caret_coord" = "Invalid caret coordinate: %v"
+"%df.cmd.error.invalid_absolute_coord" = "Invalid absolute coordinate: %v"
+"%df.cmd.error.invalid_range_format" = "Invalid range format: %v"
+"%df.cmd.error.invalid_range_min" = "Invalid minimum number: %v"
+"%df.cmd.error.invalid_range_max" = "Invalid maximum number: %v"
+"%df.cmd.error.invalid_number" = "Invalid number: %v"
+
+# Console messages
+"%df.console.reader.stopped" = "Console reader stopped: "
+"%df.console.log.level.error" = "ERROR"
+"%df.console.log.level.warn" = "WARN"
+"%df.console.log.level.debug" = "DEBUG"
+"%df.console.log.level.info" = "INFO"
+"%df.console.permission_name" = "CONSOLE"
+"%df.console.command_output_prefix" = "Command output | "
+"%df.console.command_error_prefix" = "Command error | "
+
+# Config messages
+"%df.config.no_listeners" = "config: no listeners set, no connections will be accepted"
+"%df.config.default_name" = "Dragonfly Server"
+"%df.config.error.create_listener" = "Error creating listener"
+
+# Resource pack
+"%df.resourcepack.name" = "dragonfly auto-generated resource pack"
+"%df.resourcepack.description" = "This resource pack contains auto-generated content from dragonfly"
+"%df.resourcepack.module_description" = "This resource pack contains auto-generated content from dragonfly"
+
+# Performance units
+"%df.performance.unit.ms" = "%vms"
+"%df.performance.unit.us" = "%vus"
+"%df.performance.unit.mib" = "%v MiB"

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/df-mc/dragonfly/server/cmd"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/sandertv/gophertunnel/minecraft/text"
 )
@@ -55,6 +56,6 @@ func (r *Runner) run() {
 		})
 	}
 	if err := scanner.Err(); err != nil && r.writer != nil {
-		r.writer.Line(text.Red + "Console reader stopped: " + text.White + err.Error() + text.Reset)
+		r.writer.Line(text.Red + i18n.M(nil, "%df.console.reader.stopped") + text.White + err.Error() + text.Reset)
 	}
 }

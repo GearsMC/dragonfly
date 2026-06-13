@@ -137,10 +137,10 @@ func (conf Config) New() *Server {
 		conf.Log = slog.Default()
 	}
 	if len(conf.Listeners) == 0 {
-		conf.Log.Warn("config: no listeners set, no connections will be accepted")
+		conf.Log.Warn(i18n.M(nil, "%df.config.no_listeners"))
 	}
 	if conf.Name == "" {
-		conf.Name = "Dragonfly Server"
+		conf.Name = i18n.M(nil, "%df.config.default_name")
 	}
 	if conf.StatusProvider == nil {
 		conf.StatusProvider = statusProvider{name: conf.Name}
@@ -197,7 +197,7 @@ func (conf Config) New() *Server {
 	for _, lf := range conf.Listeners {
 		l, err := lf(conf)
 		if err != nil {
-			conf.Log.Error("create listener: " + err.Error())
+			conf.Log.Error(i18n.M(nil, "%df.config.error.create_listener"), "err", err)
 		}
 		srv.listeners = append(srv.listeners, l)
 	}
@@ -386,6 +386,7 @@ func DefaultConfig() UserConfig {
 	c.Resources.Folder = "resources"
 	c.Resources.Required = false
 	c.Localization.Language = "tr"
+	// c.Server.Name için runtime çeviri, Config.New() içinde i18n.M(nil, "%df.config.default_name") ile atanir.
 	return c
 }
 

@@ -153,3 +153,77 @@
 "%df.whitelist.status.enabled" = "açik"
 "%df.whitelist.status.disabled" = "kapali"
 "%df.whitelist.usage" = "Kullanim: /whitelist <on|off|add|remove|list|reload>"
+
+# Sunucu yaşam döngüsü ve bağlantı mesajları
+"%df.server.started" = "Dragonfly sunucusu baslatildi."
+"%df.server.closed" = "Sunucu kapandi."
+"%df.server.closing" = "Sunucu kapatiliyor..."
+"%df.server.closing.disconnecting" = "Oyuncular bağlantisi kesiliyor..."
+"%df.server.closing.player_provider" = "Oyuncu sağlayicisi kapatiliyor..."
+"%df.server.closing.permission_provider" = "Yetki sağlayicisi kapatiliyor..."
+"%df.server.closing.worlds" = "Dunyalar kapatiliyor..."
+"%df.server.closing.listeners" = "Dinleyiciler kapatiliyor..."
+"%df.server.world.loading" = "Boyut yukleniyor..."
+"%df.server.world.opened" = "Boyut açildi."
+"%df.server.auth.rejected" = "Doğrulanmamiş bağlanti reddedildi."
+"%df.server.error.already_started" = "start server: zaten baslatildi"
+"%df.server.error.not_running" = "server not yet running"
+"%df.server.error.close_player_provider" = "Oyuncu sağlayicisi kapatilirken hata oluştu"
+"%df.server.error.close_permission_provider" = "Yetki sağlayicisi kapatilirken hata oluştu"
+"%df.server.error.close_dimension" = "%v boyutu kapatilirken hata oluştu"
+"%df.server.error.close_listener" = "Dinleyici kapatilirken hata oluştu"
+"%df.server.error.save_player" = "Oyuncu verisi kaydedilirken hata oluştu"
+"%df.server.error.spawn_failed" = "Oyuncu oluşturulamadi: %v"
+"%df.server.error.already_logged_in" = "Oyuncu zaten giriş yapmış"
+"%df.server.error.already_logged_in_uuid" = "Oyuncu UUID ile zaten giriş yapmış"
+"%df.server.warn.identity_index" = "Oyuncu kimlik indeksi guncellenemedi"
+"%df.server.warn.operator_identity" = "Operator kimlik kaydi guncellenemedi"
+
+# Bağlantı kopma mesajları
+"%df.disconnect.connection_closed" = "Bağlanti kapandi."
+"%df.disconnect.xbox_required" = "Xbox Live doğrulamasi gereklidir."
+"%df.disconnect.timeout" = "Bağlanti zaman aşimina uğradi."
+"%df.disconnect.already_logged_in" = "Zaten giriş yapmışsiniz."
+
+# Whitelist bağlantı reddi mesajları
+"%df.whitelist.disconnect.no_xuid" = "XUID bulunamadi, Xbox Live ile giriş yapmalisiniz."
+"%df.whitelist.disconnect.not_whitelisted" = "Whitelist'te değilsiniz."
+
+# Jukebox
+"%df.jukebox.now_playing" = "Şimdi çaliyor: %v - %v"
+
+# Komut parametre hataları
+"%df.cmd.error.invalid_gamemode" = "Geçersiz oyun modu: %v"
+"%df.cmd.error.invalid_difficulty" = "Geçersiz zorluk seviyesi: %v"
+"%df.cmd.error.invalid_relative_coord" = "Geçersiz göreceli koordinat: %v"
+"%df.cmd.error.invalid_caret_coord" = "Geçersiz caret koordinat: %v"
+"%df.cmd.error.invalid_absolute_coord" = "Geçersiz mutlak koordinat: %v"
+"%df.cmd.error.invalid_range_format" = "Geçersiz aralik formati: %v"
+"%df.cmd.error.invalid_range_min" = "Minimum sayi geçersiz: %v"
+"%df.cmd.error.invalid_range_max" = "Maksimum sayi geçersiz: %v"
+"%df.cmd.error.invalid_number" = "Geçersiz sayi: %v"
+
+# Console mesajları
+"%df.console.reader.stopped" = "Console okuyucusu durduruldu: "
+"%df.console.log.level.error" = "HATA"
+"%df.console.log.level.warn" = "UYARI"
+"%df.console.log.level.debug" = "DEBUG"
+"%df.console.log.level.info" = "BILGI"
+"%df.console.permission_name" = "KONSOL"
+"%df.console.command_output_prefix" = "Komut çiktisi | "
+"%df.console.command_error_prefix" = "Komut hatasi | "
+
+# Yapılandırma mesajları
+"%df.config.no_listeners" = "config: dinleyici ayarlanmadi, bağlanti kabul edilmeyecek"
+"%df.config.default_name" = "Dragonfly Sunucusu"
+"%df.config.error.create_listener" = "Dinleyici oluşturulurken hata oluştu"
+
+# Kaynak paketi
+"%df.resourcepack.name" = "dragonfly otomatik oluşturulmuş kaynak paketi"
+"%df.resourcepack.description" = "Bu kaynak paketi dragonfly'den otomatik oluşturulmuş içerik içerir"
+"%df.resourcepack.module_description" = "Bu kaynak paketi dragonfly'den otomatik oluşturulmuş içerik içerir"
+
+# Performans birimleri
+"%df.performance.unit.ms" = "%vms"
+"%df.performance.unit.us" = "%vus"
+"%df.performance.unit.mib" = "%v MiB"

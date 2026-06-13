@@ -87,7 +87,7 @@ func TestFormatArgsEscape(t *testing.T) {
 // customKeyRe, Go kaynak dosyalarinda kullanilan %df.* key string literal'larini bulur.
 var customKeyRe = regexp.MustCompile(`"%df\.[a-zA-Z0-9_.]+"`)
 
-// TestAllCustomKeysRegistered, cmd paketinde kullanilan tüm %df.* custom key'lerin
+// TestAllCustomKeysRegistered, üretim kodunda kullanilan tüm %df.* custom key'lerin
 // gömülü Türkçe TOML'da tanımlı olduğunu doğrular.
 func TestAllCustomKeysRegistered(t *testing.T) {
 	used := findUsedCustomKeys(t)
@@ -105,8 +105,14 @@ func TestAllCustomKeysRegistered(t *testing.T) {
 func findUsedCustomKeys(t *testing.T) map[string]bool {
 	keys := make(map[string]bool)
 	dirs := []string{
+		"..",
 		filepath.Join("..", "cmd"),
 		filepath.Join("..", "cmd", "builtin"),
+		filepath.Join("..", "block"),
+		filepath.Join("..", "console"),
+		filepath.Join("..", "internal", "packbuilder"),
+		filepath.Join("..", "player"),
+		filepath.Join("..", "whitelist"),
 	}
 	for _, dir := range dirs {
 		entries, err := os.ReadDir(dir)
@@ -114,12 +120,16 @@ func findUsedCustomKeys(t *testing.T) map[string]bool {
 			t.Fatalf("klasör okunamadi %s: %v", dir, err)
 		}
 		for _, entry := range entries {
-			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") {
+			if entry.IsDir() {
 				continue
 			}
-			data, err := os.ReadFile(filepath.Join(dir, entry.Name()))
+			name := entry.Name()
+			if !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+				continue
+			}
+			data, err := os.ReadFile(filepath.Join(dir, name))
 			if err != nil {
-				t.Fatalf("dosya okunamadi %s: %v", entry.Name(), err)
+				t.Fatalf("dosya okunamadi %s: %v", name, err)
 			}
 			for _, m := range customKeyRe.FindAllString(string(data), -1) {
 				keys[strings.Trim(m, `"`)] = true

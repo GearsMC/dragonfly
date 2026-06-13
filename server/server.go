@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/internal/blockinternal"
 	"github.com/df-mc/dragonfly/server/internal/iteminternal"
 	"github.com/df-mc/dragonfly/server/internal/sliceutil"
@@ -99,7 +100,7 @@ func New() *Server {
 func (srv *Server) Listen() {
 	t := time.Now()
 	if !srv.started.CompareAndSwap(nil, &t) {
-		panic("start server: already started")
+		panic(i18n.M(nil, "%df.server.error.already_started"))
 	}
 
 	info, _ := debug.ReadBuildInfo()
@@ -113,7 +114,7 @@ func (srv *Server) Listen() {
 		}
 	}
 
-	srv.conf.Log.Info("Dragonfly server started.", "mc-version", protocol.CurrentVersion, "go-version", info.GoVersion, "commit", revision)
+	srv.conf.Log.Info(i18n.M(nil, "%df.server.started"), "mc-version", protocol.CurrentVersion, "go-version", info.GoVersion, "commit", revision)
 	srv.startListening()
 	go srv.wait()
 }
@@ -395,7 +396,7 @@ func (srv *Server) CloseOnProgramEnd() {
 // Close closes the server, making any call to Run/Accept cancel immediately.
 func (srv *Server) Close() error {
 	if srv.started.Load() == nil {
-		panic("server not yet running")
+		panic(i18n.M(nil, "%df.server.error.not_running"))
 	}
 	srv.once.Do(srv.close)
 	return nil
@@ -403,39 +404,39 @@ func (srv *Server) Close() error {
 
 // close stops the server, storing player and world data to disk.
 func (srv *Server) close() {
-	srv.conf.Log.Info("Server closing...")
+	srv.conf.Log.Info(i18n.M(nil, "%df.server.closing"))
 	if srv.unregisterCommandListener != nil {
 		srv.unregisterCommandListener()
 		srv.unregisterCommandListener = nil
 	}
 
-	srv.conf.Log.Debug("Disconnecting players...")
+	srv.conf.Log.Debug(i18n.M(nil, "%df.server.closing.disconnecting"))
 	for p := range srv.Players(nil) {
 		p.Disconnect(chat.MessageServerDisconnect.Resolve(p.Locale()))
 	}
 	srv.pwg.Wait()
 
-	srv.conf.Log.Debug("Closing player provider...")
+	srv.conf.Log.Debug(i18n.M(nil, "%df.server.closing.player_provider"))
 	if err := srv.conf.PlayerProvider.Close(); err != nil {
-		srv.conf.Log.Error("Close player provider: " + err.Error())
+		srv.conf.Log.Error(i18n.M(nil, "%df.server.error.close_player_provider"), "err", err)
 	}
 
-	srv.conf.Log.Debug("Closing permission provider...")
+	srv.conf.Log.Debug(i18n.M(nil, "%df.server.closing.permission_provider"))
 	if err := srv.conf.Permissions.Close(); err != nil {
-		srv.conf.Log.Error("Close permission provider: " + err.Error())
+		srv.conf.Log.Error(i18n.M(nil, "%df.server.error.close_permission_provider"), "err", err)
 	}
 
-	srv.conf.Log.Debug("Closing worlds...")
+	srv.conf.Log.Debug(i18n.M(nil, "%df.server.closing.worlds"))
 	for _, w := range []*world.World{srv.end, srv.nether, srv.world} {
 		if err := w.Close(); err != nil {
-			srv.conf.Log.Error(fmt.Sprintf("Close dimension %v: ", w.Dimension()) + err.Error())
+			srv.conf.Log.Error(i18n.M(nil, "%df.server.error.close_dimension", w.Dimension()), "err", err)
 		}
 	}
 
-	srv.conf.Log.Debug("Closing listeners...")
+	srv.conf.Log.Debug(i18n.M(nil, "%df.server.closing.listeners"))
 	for _, l := range srv.listeners {
 		if err := l.Close(); err != nil {
-			srv.conf.Log.Error("Close listener: " + err.Error())
+			srv.conf.Log.Error(i18n.M(nil, "%df.server.error.close_listener"), "err", err)
 		}
 	}
 }
@@ -467,8 +468,8 @@ func (srv *Server) listen(l Listener) {
 			defer wg.Done()
 			identity := c.IdentityData()
 			if err := validateAuthenticatedIdentity(identity); err != nil {
-				srv.conf.Log.Warn("Doğrulanmamış bağlantı reddedildi.", "raddr", c.RemoteAddr(), "neden", err)
-				_ = c.WritePacket(&packet.Disconnect{Message: "Xbox Live doğrulaması gereklidir."})
+				srv.conf.Log.Warn(i18n.M(nil, "%df.server.auth.rejected"), "raddr", c.RemoteAddr(), "reason", err)
+				_ = c.WritePacket(&packet.Disconnect{Message: i18n.M(connLocale(c), "%df.disconnect.xbox_required")})
 				_ = c.Close()
 				return
 			}
@@ -539,7 +540,7 @@ func (srv *Server) makeItemComponents() {
 // to listen and closed the players channel once that happens.
 func (srv *Server) wait() {
 	srv.wg.Wait()
-	srv.conf.Log.Info("Server closed.", "uptime", time.Since(*srv.started.Load()).String())
+	srv.conf.Log.Info(i18n.M(nil, "%df.server.closed"), "uptime", time.Since(*srv.started.Load()).String())
 	close(srv.incoming)
 }
 
@@ -566,19 +567,19 @@ func (srv *Server) finaliseConn(ctx context.Context, conn session.Conn, l Listen
 	data.EmoteChatMuted = srv.conf.MuteEmoteChat
 
 	if err := conn.StartGameContext(ctx, data); err != nil {
-		_ = l.Disconnect(conn, "Connection timeout.")
+		_ = l.Disconnect(conn, i18n.M(connLocale(conn), "%df.disconnect.timeout"))
 
-		srv.conf.Log.Debug("spawn failed: "+err.Error(), "raddr", conn.RemoteAddr())
+		srv.conf.Log.Debug(i18n.M(nil, "%df.server.error.spawn_failed", err), "raddr", conn.RemoteAddr())
 		return
 	}
 	if _, ok := srv.PlayerByXUID(xuid); ok {
-		_ = l.Disconnect(conn, "Already logged in.")
-		srv.conf.Log.Debug("spawn failed: already logged in", "raddr", conn.RemoteAddr())
+		_ = l.Disconnect(conn, i18n.M(connLocale(conn), "%df.disconnect.already_logged_in"))
+		srv.conf.Log.Debug(i18n.M(nil, "%df.server.error.already_logged_in"), "raddr", conn.RemoteAddr())
 		return
 	}
 	if _, ok := srv.Player(id); ok {
-		_ = l.Disconnect(conn, "Already logged in.")
-		srv.conf.Log.Debug("spawn failed: already logged in UUID", "raddr", conn.RemoteAddr())
+		_ = l.Disconnect(conn, i18n.M(connLocale(conn), "%df.disconnect.already_logged_in"))
+		srv.conf.Log.Debug(i18n.M(nil, "%df.server.error.already_logged_in_uuid"), "raddr", conn.RemoteAddr())
 		return
 	}
 	srv.rememberIdentity(player.Identity{
@@ -662,7 +663,7 @@ func (srv *Server) handleSessionClose(tx *world.Tx, c session.Controllable) {
 		LastSeen:      time.Now(),
 	})
 	if err := srv.conf.PlayerProvider.Save(c.XUID(), c.(*player.Player).Data(), tx.World()); err != nil {
-		srv.conf.Log.Error("Save player data: " + err.Error())
+		srv.conf.Log.Error(i18n.M(nil, "%df.server.error.save_player"), "err", err)
 	}
 	srv.pwg.Done()
 }
@@ -671,11 +672,11 @@ func (srv *Server) rememberIdentity(identity player.Identity) {
 	provider, ok := srv.conf.PlayerProvider.(player.IdentityProvider)
 	if ok {
 		if err := provider.RememberIdentity(identity); err != nil {
-			srv.conf.Log.Warn("oyuncu kimlik indeksi güncellenemedi", "xuid", identity.XUID, "name", identity.LastKnownName, "err", err)
+			srv.conf.Log.Warn(i18n.M(nil, "%df.server.warn.identity_index"), "xuid", identity.XUID, "name", identity.LastKnownName, "err", err)
 		}
 	}
 	if err := srv.conf.Permissions.RememberOperatorIdentity(identity.XUID, identity.LastKnownName); err != nil {
-		srv.conf.Log.Warn("operatör kimlik kaydı güncellenemedi", "xuid", identity.XUID, "name", identity.LastKnownName, "err", err)
+		srv.conf.Log.Warn(i18n.M(nil, "%df.server.warn.operator_identity"), "xuid", identity.XUID, "name", identity.LastKnownName, "err", err)
 	}
 }
 
@@ -756,12 +757,25 @@ func (srv *Server) createPlayer(id uuid.UUID, conn session.Conn, conf player.Con
 	return incoming{s: s, w: w, conf: conf, p: &onlinePlayer{name: conf.Name, xuid: conf.XUID, handle: handle}}
 }
 
+// connLocale, bir bağlantının client dil kodunu language.Tag'e çevirir.
+// Geçersizse veya bağlantı yoksa sunucu varsayılan dilini döndürür.
+func connLocale(c session.Conn) language.Tag {
+	if c == nil {
+		return i18n.Default()
+	}
+	tag, err := language.Parse(strings.Replace(c.ClientData().LanguageCode, "_", "-", 1))
+	if err != nil {
+		return i18n.Default()
+	}
+	return tag
+}
+
 // createWorld loads a world with a specific dimension using the provider set
 // in the Config. The nether and end dimensions point to the worlds that players
 // are moved to when passing through the respective portals.
 func (srv *Server) createWorld(dim world.Dimension, nether, end **world.World) *world.World {
 	logger := srv.conf.Log.With("dimension", strings.ToLower(fmt.Sprint(dim)))
-	logger.Debug("Loading dimension...")
+	logger.Debug(i18n.M(nil, "%df.server.world.loading"))
 
 	conf := world.Config{
 		Log:                 logger,
@@ -786,7 +800,7 @@ func (srv *Server) createWorld(dim world.Dimension, nether, end **world.World) *
 		},
 	}
 	w := conf.New()
-	logger.Info("Opened dimension.", "name", w.Name())
+	logger.Info(i18n.M(nil, "%df.server.world.opened"), "name", w.Name())
 	return w
 }
 

@@ -1,12 +1,13 @@
 package block
 
 import (
-	"fmt"
 	"github.com/df-mc/dragonfly/server/block/cube"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/internal/nbtconv"
 	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/df-mc/dragonfly/server/world/sound"
+	"golang.org/x/text/language"
 	"time"
 )
 
@@ -88,7 +89,11 @@ func (j Jukebox) Activate(pos cube.Pos, _ cube.Face, tx *world.Tx, u item.User, 
 
 			tx.PlaySound(pos.Vec3Centre(), sound.MusicDiscPlay{DiscType: m.DiscType})
 			if u, ok := u.(jukeboxUser); ok {
-				u.SendJukeboxPopup(fmt.Sprintf("Now playing: %v - %v", m.DiscType.Author(), m.DiscType.DisplayName()))
+				locale := i18n.Default()
+				if ls, ok := u.(interface{ Locale() language.Tag }); ok {
+					locale = ls.Locale()
+				}
+				u.SendJukeboxPopup(i18n.M(locale, "%df.jukebox.now_playing", m.DiscType.Author(), m.DiscType.DisplayName()))
 			}
 		}
 	}

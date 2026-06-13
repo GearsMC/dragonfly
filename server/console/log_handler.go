@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/sandertv/gophertunnel/minecraft/text"
 )
 
@@ -86,13 +87,13 @@ func (h *LogHandler) WithGroup(name string) slog.Handler {
 func levelLabel(level slog.Level) (string, string) {
 	switch {
 	case level >= slog.LevelError:
-		return "ERROR", text.Red
+		return i18n.M(nil, "%df.console.log.level.error"), text.Red
 	case level >= slog.LevelWarn:
-		return "WARN", text.Yellow
+		return i18n.M(nil, "%df.console.log.level.warn"), text.Yellow
 	case level <= slog.LevelDebug:
-		return "DEBUG", text.Grey
+		return i18n.M(nil, "%df.console.log.level.debug"), text.Grey
 	default:
-		return "INFO", text.Orange
+		return i18n.M(nil, "%df.console.log.level.info"), text.Orange
 	}
 }
 

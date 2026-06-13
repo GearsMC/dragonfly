@@ -21,6 +21,7 @@ import (
 	"github.com/df-mc/dragonfly/server/entity"
 	"github.com/df-mc/dragonfly/server/entity/effect"
 	"github.com/df-mc/dragonfly/server/event"
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/item/enchantment"
 	"github.com/df-mc/dragonfly/server/item/inventory"
@@ -419,7 +420,7 @@ func (p *Player) Chat(msg ...any) {
 	if p.Handler().HandleChat(ctx, &message); ctx.Cancelled() {
 		return
 	}
-	_, _ = fmt.Fprintf(chat.Global, "<%v> %v\n", p.Name(), message)
+	chat.Global.Writet(chat.MessageText, p.Name(), message)
 }
 
 // ExecuteCommand executes a command passed as the player. If the command could not be found, or if the usage
@@ -3254,7 +3255,7 @@ func (p *Player) Disconnect(msg ...any) {
 // player with a custom message.
 func (p *Player) Close() error {
 	p.once.Do(func() {
-		p.close("Connection closed.")
+		p.close(i18n.M(p, "%df.disconnect.connection_closed"))
 	})
 	return nil
 }

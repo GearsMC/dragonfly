@@ -10,7 +10,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/df-mc/dragonfly/server/i18n"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/login"
+	"golang.org/x/text/language"
 )
 
 // Entry, XUID tabanlı whitelist girişidir.
@@ -57,7 +59,7 @@ func New(path string) (*Whitelist, error) {
 // Allow, server.Allower interface'ini uygular.
 // Bağlantı sırasında çağrılır, sadece RLock + map lookup yapar.
 // Disk I/O yoktur, tahsis yoktur — lag-free.
-func (w *Whitelist) Allow(addr net.Addr, d login.IdentityData, _ login.ClientData) (string, bool) {
+func (w *Whitelist) Allow(addr net.Addr, d login.IdentityData, c login.ClientData) (string, bool) {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 
@@ -65,16 +67,28 @@ func (w *Whitelist) Allow(addr net.Addr, d login.IdentityData, _ login.ClientDat
 		return "", true
 	}
 
+	locale := clientLocale(c.LanguageCode)
+
 	xuid := strings.TrimSpace(d.XUID)
 	if xuid == "" {
-		return "XUID bulunamadı, Xbox Live ile giriş yapmalısınız.", false
+		return i18n.M(locale, "%df.whitelist.disconnect.no_xuid"), false
 	}
 
 	if _, ok := w.entries[xuid]; ok {
 		return "", true
 	}
 
-	return "Whitelist'te değilsiniz.", false
+	return i18n.M(locale, "%df.whitelist.disconnect.not_whitelisted"), false
+}
+
+// clientLocale, client dil kodunu language.Tag'e çevirir. Geçersizse sunucu
+// varsayılan dilini döndürür.
+func clientLocale(code string) language.Tag {
+	tag, err := language.Parse(strings.Replace(code, "_", "-", 1))
+	if err != nil {
+		return i18n.Default()
+	}
+	return tag
 }
 
 // Enabled, whitelist'in etkin olup olmadığını döndürür.

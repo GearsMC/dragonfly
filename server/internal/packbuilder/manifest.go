@@ -2,13 +2,15 @@ package packbuilder
 
 import (
 	"encoding/json"
-	"github.com/google/uuid"
-	"github.com/sandertv/gophertunnel/minecraft/protocol"
-	"github.com/sandertv/gophertunnel/minecraft/resource"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/df-mc/dragonfly/server/i18n"
+	"github.com/google/uuid"
+	"github.com/sandertv/gophertunnel/minecraft/protocol"
+	"github.com/sandertv/gophertunnel/minecraft/resource"
 )
 
 // buildManifest creates a JSON manifest file for the client to be able to read the resource pack. It creates
@@ -17,8 +19,8 @@ func buildManifest(dir string, headerUUID, moduleUUID uuid.UUID) {
 	m, err := json.Marshal(resource.Manifest{
 		FormatVersion: 2,
 		Header: resource.Header{
-			Name:               "dragonfly auto-generated resource pack",
-			Description:        "This resource pack contains auto-generated content from dragonfly",
+			Name:               i18n.M(nil, "%df.resourcepack.name"),
+			Description:        i18n.M(nil, "%df.resourcepack.description"),
 			UUID:               headerUUID,
 			Version:            [3]int{0, 0, 1},
 			MinimumGameVersion: parseVersion(protocol.CurrentVersion),
@@ -26,7 +28,7 @@ func buildManifest(dir string, headerUUID, moduleUUID uuid.UUID) {
 		Modules: []resource.Module{
 			{
 				UUID:        moduleUUID.String(),
-				Description: "This resource pack contains auto-generated content from dragonfly",
+				Description: i18n.M(nil, "%df.resourcepack.module_description"),
 				Type:        "resources",
 				Version:     [3]int{0, 0, 1},
 			},

@@ -11,6 +11,7 @@ import (
 
 var MessageJoin = Translate(str("%multiplayer.player.joined"), 1, `%v joined the game`).Enc("<yellow>%v</yellow>")
 var MessageQuit = Translate(str("%multiplayer.player.left"), 1, `%v left the game`).Enc("<yellow>%v</yellow>")
+var MessageText = Translate(str("%chat.type.text"), 2, `<%v> %v`)
 var MessageServerDisconnect = Translate(str("%disconnect.disconnected"), 0, `Disconnected by Server`).Enc("<yellow>%v</yellow>")
 
 var MessageBedTooFar = Translate(str("%tile.bed.tooFar"), 0, `Bed is too far away`).Enc("<grey>%v</grey>")

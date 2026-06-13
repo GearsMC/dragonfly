@@ -36,17 +36,17 @@ func (tpsCommand) Run(src cmd.Source, o *cmd.Output, tx *world.Tx) {
 	o.Printm(src, "%df.performance.world", snapshot.Name, snapshot.Dimension)
 	o.Printm(src, "%df.performance.tps",
 		healthTPS(snapshot.TPS),
-		healthDuration(snapshot.Tick.Average),
-		healthDuration(snapshot.Tick.Maximum),
+		healthDuration(src, snapshot.Tick.Average),
+		healthDuration(src, snapshot.Tick.Maximum),
 	)
 	o.Printm(src, "%df.performance.queue",
 		healthQueue(src, snapshot.Queue.Current, snapshot.Queue.Peak),
-		healthDuration(snapshot.Transactions.Wait.Average),
-		healthDuration(snapshot.Transactions.Wait.Maximum),
+		healthDuration(src, snapshot.Transactions.Wait.Average),
+		healthDuration(src, snapshot.Transactions.Wait.Maximum),
 	)
 	o.Printm(src, "%df.performance.tx",
-		healthDuration(snapshot.Transactions.Execution.Average),
-		healthDuration(snapshot.Transactions.Execution.Maximum),
+		healthDuration(src, snapshot.Transactions.Execution.Average),
+		healthDuration(src, snapshot.Transactions.Execution.Maximum),
 	)
 
 	printOperationSummaries(src, o, snapshot.Operations)
@@ -60,10 +60,10 @@ func (statusCommand) Run(src cmd.Source, o *cmd.Output, _ *world.Tx) {
 
 	o.Printm(src, "%df.status.title")
 	o.Printm(src, "%df.status.memory",
-		formatBytes(runtime.HeapAlloc), formatBytes(runtime.HeapInUse), runtime.HeapObjects,
+		formatBytes(src, runtime.HeapAlloc), formatBytes(src, runtime.HeapInUse), runtime.HeapObjects,
 	)
 	o.Printm(src, "%df.status.gc",
-		runtime.Goroutines, runtime.GCCycles, healthDuration(time.Duration(runtime.LastGCPause)),
+		runtime.Goroutines, runtime.GCCycles, healthDuration(src, time.Duration(runtime.LastGCPause)),
 	)
 	o.Printm(src, "%df.status.worlds", runtime.Worlds)
 
@@ -72,7 +72,7 @@ func (statusCommand) Run(src cmd.Source, o *cmd.Output, _ *world.Tx) {
 			snapshot.Name,
 			snapshot.Dimension,
 			healthTPS(snapshot.TPS),
-			healthDuration(snapshot.Tick.Average),
+			healthDuration(src, snapshot.Tick.Average),
 			healthQueue(src, snapshot.Queue.Current, snapshot.Queue.Peak),
 		)
 		o.Printm(src, "%df.status.world.state",
@@ -94,8 +94,8 @@ func printOperationSummaries(src cmd.Source, o *cmd.Output, operations map[strin
 		}
 		o.Printm(src, "%df.performance.operation",
 			i18n.M(src, operation.labelKey),
-			healthDuration(summary.Average),
-			healthDuration(summary.Maximum),
+			healthDuration(src, summary.Average),
+			healthDuration(src, summary.Maximum),
 			summary.Samples,
 		)
 	}
@@ -125,14 +125,14 @@ func healthTPS(tps float64) string {
 	}
 }
 
-func healthDuration(d time.Duration) string {
+func healthDuration(src cmd.Source, d time.Duration) string {
 	colour := text.Green
 	if d >= 50*time.Millisecond {
 		colour = text.Red
 	} else if d >= 25*time.Millisecond {
 		colour = text.Yellow
 	}
-	return colour + formatDuration(d) + text.Reset
+	return colour + formatDuration(src, d) + text.Reset
 }
 
 func healthQueue(src cmd.Source, current, peak int64) string {
@@ -145,18 +145,18 @@ func healthQueue(src cmd.Source, current, peak int64) string {
 	return colour + i18n.M(src, "%df.performance.queue.status", current, peak) + text.Reset
 }
 
-func formatDuration(d time.Duration) string {
+func formatDuration(src cmd.Source, d time.Duration) string {
 	switch {
 	case d <= 0:
-		return "0ms"
+		return i18n.M(src, "%df.performance.unit.ms", 0)
 	case d < time.Millisecond:
-		return fmt.Sprintf("%.2fus", float64(d)/float64(time.Microsecond))
+		return i18n.M(src, "%df.performance.unit.us", float64(d)/float64(time.Microsecond))
 	default:
-		return fmt.Sprintf("%.2fms", float64(d)/float64(time.Millisecond))
+		return i18n.M(src, "%df.performance.unit.ms", float64(d)/float64(time.Millisecond))
 	}
 }
 
-func formatBytes(bytes uint64) string {
+func formatBytes(src cmd.Source, bytes uint64) string {
 	const mib = 1024 * 1024
-	return fmt.Sprintf("%.1f MiB", float64(bytes)/mib)
+	return i18n.M(src, "%df.performance.unit.mib", float64(bytes)/mib)
 }
