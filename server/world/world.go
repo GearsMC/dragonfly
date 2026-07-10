@@ -128,7 +128,10 @@ func (w *World) BlockRegistry() BlockRegistry {
 type ExecFunc func(tx *Tx)
 
 // Exec performs a synchronised transaction f on a World. Exec returns a channel
-// that is closed once the transaction is complete.
+// that is closed once the transaction is complete. For Worlds created with
+// Config.Synchronous set, the transaction is executed on the calling goroutine
+// and the channel returned is closed when Exec returns. Awaiting a nested Exec
+// from within a transaction deadlocks on non-synchronous Worlds.
 func (w *World) Exec(f ExecFunc) <-chan struct{} {
 	return w.exec("exec", f)
 }
@@ -137,13 +140,36 @@ func (w *World) Exec(f ExecFunc) <-chan struct{} {
 // used to attribute queue wait and execution time in performance reports.
 func (w *World) exec(kind string, f ExecFunc) <-chan struct{} {
 	c := make(chan struct{})
-	w.queue <- normalTransaction{c: c, f: f, token: w.metrics.BeginTransaction(kind)}
+	ntx := normalTransaction{c: c, f: f, token: w.metrics.BeginTransaction(kind)}
+	if w.conf.Synchronous {
+		ntx.Run(w)
+		return c
+	}
+	w.queue <- ntx
 	return c
 }
 
 func (w *World) weakExec(invalid *atomic.Bool, cond *sync.Cond, f ExecFunc) <-chan bool {
 	c := make(chan bool, 1)
-	w.queue <- weakTransaction{c: c, f: f, invalid: invalid, cond: cond, token: w.metrics.BeginTransaction("weak_exec")}
+	wtx := weakTransaction{c: c, f: f, invalid: invalid, cond: cond, token: w.metrics.BeginTransaction("weak_exec")}
+	if w.conf.Synchronous {
+		started := w.metrics.StartTransaction(wtx.token)
+		defer w.metrics.EndTransaction(wtx.token, started)
+
+		valid := !invalid.Load()
+		if valid {
+			// As in weakTransaction.Run, f must not run under cond.L: it may
+			// relock it, e.g. through RemoveEntity.
+			cond.L.Unlock()
+			tx := &Tx{w: w}
+			f(tx)
+			tx.close()
+			cond.L.Lock()
+		}
+		c <- valid
+		return c
+	}
+	w.queue <- wtx
 	return c
 }
 

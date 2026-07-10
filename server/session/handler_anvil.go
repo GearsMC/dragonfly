@@ -32,7 +32,7 @@ func (h *ItemStackRequestHandler) handleCraftRecipeOptional(a *protocol.CraftRec
 	if !ok {
 		return errors.New(i18n.R("%df.session.handler.anvil.no_container"))
 	}
-	if len(filterStrings) < int(a.FilterStringIndex) {
+	if index := int(a.FilterStringIndex); index < 0 || index >= len(filterStrings) {
 		return errors.New(i18n.R("%df.session.handler.anvil.filter_index_out_of_bounds", a.FilterStringIndex))
 	}
 

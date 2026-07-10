@@ -281,7 +281,7 @@ func (h *ItemStackRequestHandler) handleMineBlock(a *protocol.MineBlockStackRequ
 // output as usual.
 func (h *ItemStackRequestHandler) handleCreate(a *protocol.CreateStackRequestAction, s *Session, tx *world.Tx) error {
 	slot := int(a.ResultsSlot)
-	if len(h.pendingResults) < slot {
+	if slot >= len(h.pendingResults) {
 		return errors.New(i18n.R("%df.session.handler.item_stack_request.invalid_result_slot", a.ResultsSlot))
 	}
 
